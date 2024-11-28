@@ -1,0 +1,108 @@
+.bms-container {
+    margin-bottom: 3rem;
+}
+
+.cl-row, .quote-row, .invoice-row {
+    border: 1px solid #e6e4e9;
+    box-shadow:  0px 0px 10px 0px rgba(82, 63, 105, 0.1);
+}
+
+
+#list-invoices {
+    margin-top: 2rem;
+}
+
+.smaller-gray {
+    font-size:0.8em;
+    color:gray;
+}
+
+.light-yellow {
+    background-color: #fff8e6!important;
+}
+.pelatis {
+    font-size: 1.2em;
+    font-weight: 500;
+    width: 100%;
+    display: block;
+    margin-bottom: -0.5em;
+}
+
+#add-client-block, #add-project-block {
+    display: none;
+}
+
+.bordered-block {
+    border: 1px solid #e6e4e9;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+.cl-row-head, .quote-row-head, .invoice-row-head {
+    font-weight: 700;
+}
+
+.width-80 {
+    width:80%;
+}
+
+.show-price {
+    border: none !important;
+    border-bottom: 2px solid #202020 !important;
+    background: none;
+    border-radius: unset;
+}
+
+#discount-cont {
+    display: none;
+    margin-top: 10px;
+}
+
+/*initial state hidden*/
+#add-quote-block, #add-in-block, #add-out-block, #add-invoice-block {
+    display: none;
+}
+
+/* fix modal top hiding under menu header*/
+.modal-dialog {
+    margin-top: 10em!important;
+}
+
+#dash-nav .dashicons {
+    font-size: 60px;
+    width: 60px;
+    height: 60px;
+  }
+
+#balances-table th {
+    border-bottom: black 1px solid;
+}
+
+/* Custom styles for the BMS dashboard (gtp) */
+.dashboard .card-title {
+    font-size: 1.25rem;
+}
+
+.dashboard .card-text {
+    margin-bottom: 0.5rem;
+}
+
+.dashboard .btn-block {
+    width: 100%;
+}
+
+.dashboard .card {
+    height: 100%;
+}
+
+/* PROJECTS */
+.project-details {
+    background: #ffedba; 
+    font-size:1.25em;
+    font-weight:700;
+    text-decoration: underline;
+}
+
+.project-head-bg {
+    background: #ffedba; 
+}
