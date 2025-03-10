@@ -1,3 +1,4 @@
+jQuery(document).ready(function($) {
 const initial_client_list = $("#data-list").html();
 
 $('.delete-client').click(function(e) {
@@ -36,23 +37,20 @@ $("#add-new-invoice-btn").click(function(){
   });
 
 /** filter clients on search */
-$(document).ready(function() {
-    $('#client-search').on('keyup', function() {
-      let searchText = $(this).val().toLowerCase();
-      $('.cl-row').each(function() {
-        let clientText = $(this).text().toLowerCase();
-        if (clientText.includes(searchText)) {
-          $(this).show();
-        } else {
-          $(this).hide();
-        }
-      });
+  $('#client-search').on('keyup', function() {
+    let searchText = $(this).val().toLowerCase();
+    $('.cl-row').each(function() {
+      let clientText = $(this).text().toLowerCase();
+      if (clientText.includes(searchText)) {
+        $(this).show();
+      } else {
+        $(this).hide();
+      }
     });
   });
 
   /** sort clients alphbetically */
   $('#sort-name').on('click', function() {
-    //console.log("passed sort fn");
     let clients = $('.cl-row').sort(function(a, b) {
       let nameA = $(a).find('.pelatis').text().toLowerCase();
       let nameB = $(b).find('.pelatis').text().toLowerCase();
@@ -66,14 +64,12 @@ $(document).ready(function() {
     $('#data-list').html(initial_client_list);
   });
 
-/** fade out client added message */
-$(document).ready(function() {
-    setTimeout(function() {
-      $('.alert-danger, .alert-success').fadeOut('slow');
-    }, 4000); // 4 seconds
-  });
+  /** fade out client added message */
+  setTimeout(function() {
+    $('.alert-danger, .alert-success').fadeOut('slow');
+  }, 4000); // 4 seconds
 
-//edit client entry
+  //edit client entry
   $('.edit-client').click(function(e) {
     e.preventDefault();
     var clientId = $(this).data('id');
@@ -104,119 +100,124 @@ $(document).ready(function() {
 
     // Change the button text to "Αποθήκευση αλλαγών"
     $('input[name="bms_add_client"]').val('Save Changes');
-});
-
-/* Prevent form resubmiting on refresh */
-if ( window.history.replaceState ) {
-        window.history.replaceState( null, null, window.location.href );
-}
-
-/** add new item line */
-const empty_item_line = `
-          <div id="line0" class="row mb-3 dynamic-line position-relative">
-            <button type="button" class="btn-close position-absolute top-0 end-0" aria-label="Close" style="font-size: 0.55rem;margin-right:1em;"></button>
-            <div class="col-md-7">
-                <label for="item-descr" class="form-label">Product</label>
-                <textarea name="item_line[]" id="item-descr" class="form-control item-descr" required></textarea>
-            </div>
-            <div class="col-md-1">
-                <label for="item-quantity" class="form-label">#</label>
-                <input type="text" name="item-quantity[]" value=1 class="form-control item-quantity only-num" required>
-            </div>
-            <div class="col-md-2">
-                <label for="unit-price_1" class="form-label">Unit price</label>
-                <input type="text" name="unit-price[]" id="unit-price_1" value=0 class="form-control unit-price only-num" required>
-            </div>
-            <div class="col-md-2">
-                <label for="price_1" class="form-label">Price (&euro;)</label>
-                <input type="text" name="price[]" id="price_1" value=0 readonly class="form-control show-price" required>
-            </div>
-        </div>
-                        `;
-
-$(document).on('click', '.btn-close', function() {
-  $(this).closest('.dynamic-line').remove();
   });
 
-$('#add-item-line').on('click', function() {
-  //let lineCounter = 0;
-  //fix the numbering where are already more than one items (on edid ect)
-  let lineCounter = $('#items-container .row').length;
-  console.log("num of lines: "+lineCounter);
-  let newLine = empty_item_line.replace(/line0/g, 'line' + lineCounter);
-  $("#items-container").append(newLine); // Append
-  lineCounter++;
-});
+  //triger edit client on request from stock
+  // Get the srcstock value from the URL query parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const srcstock = urlParams.get('srcstock');
+  
+  // Find the .edit-client anchor tag with matching data-id and trigger its click event
+  $('.edit-client[data-id="' + srcstock + '"]').trigger('click');
 
-/** Prices calculations */
-var price_before = 0;
-var price_after = 0;
-var price_vat = 0;
-var vat_checker = 1;
-var vat = Number($("#vat").val());
-var discount = 0;
-var discounted_price = 0;
-//trigger calc initially in case of load initila values (for create invoice from quote or other)
-$(document).ready(function(){
-  calc_final_before_vat ();
-});
-
-$(document).on( "keyup", "input.item-quantity" , function() {
-  let quantity = $(this).val();
-  let unit_price = $(this).parent().next().find('.unit-price').val();
-  let res = calc_price(quantity, unit_price);
-  $(this).parent().next().next().find('.show-price').val(res);
-  calc_final_before_vat ();
-});
-
-$(document).on( "keyup", "input.unit-price" , function() {
-  let unit_price = $(this).val();
-  let quantity = $(this).parent().prev().find('.item-quantity').val();
-  let res = calc_price(quantity, unit_price);
-  $(this).parent().next().find('.show-price').val(res);
-  calc_final_before_vat ();
-});
-
-$(document).on( "change", "#vat" , function() {
-  vat = Number($(this).val());
-  calc_final_ater_vat();
-});
-
-$(document).on( "keyup", "#discount_val" , function() {
-  discount = Number($(this).val());
-  calc_final_ater_vat();
-});
-
-$('input[type=radio][name=plus-inc-vat]').change(function() {
-  vat_checker = $('input[name="plus-inc-vat"]:checked').val();
-  //if, means that before it was the oposite state
-  if (vat_checker == "1"){ //before it was 2
-    price_before = price_after;
-    price_after = Math.round((price_before + price_before * vat / 100) * 100) / 100;
+  /* Prevent form resubmiting on refresh */
+  if ( window.history.replaceState ) {
+          window.history.replaceState( null, null, window.location.href );
   }
-  if (vat_checker == "2"){ //before it was 1
-    price_after = price_before;
-    price_before = Math.round((price_before / (1 + vat/100)) * 100) / 100;;
-  }
-  calc_final_ater_vat();
-});
 
-function calc_price (quantity, unit_price){
-   let result = quantity * unit_price;
-   let roundedResult = Math.round(result * 100) / 100;
-   return roundedResult;
- }
+  /** add new item line */
+  const empty_item_line = `
+      <div id="line0" class="row mb-3 dynamic-line position-relative">
+        <button type="button" class="btn-close position-absolute top-0 end-0" aria-label="Close" style="font-size: 0.55rem;margin-right:1em;"></button>
+        <div class="col-md-7">
+            <label for="item-descr" class="form-label">Product</label>
+            <textarea name="item_line[]" id="item-descr" class="form-control item-descr" required></textarea>
+        </div>
+        <div class="col-md-1">
+            <label for="item-quantity" class="form-label">#</label>
+            <input type="text" name="item-quantity[]" value=1 class="form-control item-quantity only-num" required>
+        </div>
+        <div class="col-md-2">
+            <label for="unit-price_1" class="form-label">Unit price</label>
+            <input type="text" name="unit-price[]" id="unit-price_1" value=0 class="form-control unit-price only-num" required>
+        </div>
+        <div class="col-md-2">
+            <label for="price_1" class="form-label">Price (&euro;)</label>
+            <input type="text" name="price[]" id="price_1" value=0 readonly class="form-control show-price" required>
+        </div>
+    </div>
+          `;
 
-function calc_final_before_vat (){
-  $(document).ready(function(){
-    price_before=0;
-    $(".show-price").each(function() {
-      price_before+= Number($(this).val());
-    });
-    price_before = Math.round(price_before * 100) / 100;
+  $(document).on('click', '.btn-close', function() {
+    if (!$(this).hasClass('recalc')) {
+      $(this).closest('.dynamic-line').remove();
+    }
+  });
+
+  $('#add-item-line').on('click', function() {
+    //let lineCounter = 0;
+    //fix the numbering where are already more than one items (on edid ect)
+    let lineCounter = $('#items-container .row').length;
+    let newLine = empty_item_line.replace(/line0/g, 'line' + lineCounter);
+    $("#items-container").append(newLine); // Append
+    lineCounter++;
+  });
+
+  /** Prices calculations */
+  var price_before = 0;
+  var price_after = 0;
+  var price_vat = 0;
+  var vat_checker = 1;
+  var vat = Number($("#vat").val());
+  var discount = 0;
+  var discounted_price = 0;
+  //trigger calc initially in case of load initial values (for create invoice from quote or other)
+  calc_final_before_vat ();
+
+  $(document).on( "keyup", "input.item-quantity" , function() {
+    let quantity = $(this).val();
+    let unit_price = $(this).parent().next().find('.unit-price').val();
+    let res = calc_price(quantity, unit_price);
+    $(this).parent().next().next().find('.show-price').val(res);
+    calc_final_before_vat ();
+  });
+
+  $(document).on( "keyup", "input.unit-price" , function() {
+    let unit_price = $(this).val();
+    let quantity = $(this).parent().prev().find('.item-quantity').val();
+    let res = calc_price(quantity, unit_price);
+    $(this).parent().next().find('.show-price').val(res);
+    calc_final_before_vat ();
+  });
+
+  $(document).on( "change", "#vat" , function() {
+    vat = Number($(this).val());
     calc_final_ater_vat();
   });
-}
+
+  $(document).on( "keyup", "#discount_val" , function() {
+    discount = Number($(this).val());
+    calc_final_ater_vat();
+  });
+
+  $('input[type=radio][name=plus-inc-vat]').change(function() {
+    vat_checker = $('input[name="plus-inc-vat"]:checked').val();
+    //if, means that before it was the oposite state
+    if (vat_checker == "1"){ //before it was 2
+      price_before = price_after;
+      price_after = Math.round((price_before + price_before * vat / 100) * 100) / 100;
+    }
+    if (vat_checker == "2"){ //before it was 1
+      price_after = price_before;
+      price_before = Math.round((price_before / (1 + vat/100)) * 100) / 100;;
+    }
+    calc_final_ater_vat();
+  });
+
+  function calc_price (quantity, unit_price){
+    let result = quantity * unit_price;
+    let roundedResult = Math.round(result * 100) / 100;
+    return roundedResult;
+  }
+
+  function calc_final_before_vat (){
+      price_before=0;
+      $(".show-price").each(function() {
+        price_before+= Number($(this).val());
+      });
+      price_before = Math.round(price_before * 100) / 100;
+      calc_final_ater_vat();
+  }
 
 function calc_final_ater_vat(){
   price_after = price_before + (price_before * vat / 100);
@@ -367,8 +368,9 @@ $('.view-quote').on('click', function() {
     url: quoteAjax.ajaxurl,  // Use the localized ajaxurl
     type: 'POST',
     data: {
-        action: 'fetch_quote_data',
-        quote_id: quoteId
+        action: 'fetch_data_for_print',
+        this_id: quoteId,
+        source: 'quote'
     },
     success: function(response) {
         console.log('AJAX Success: ', response);
@@ -427,7 +429,6 @@ $('.save-new').on('click', function(e) {
       success: function(response) {
         let data = JSON.parse(response);
         let request_type = "savenew";
-        console.log(data);
         let new_quote_no = data.quote_no;
         update_or_save_new(data, request_type, new_quote_no);
         $('#list-quotes').hide();
@@ -438,7 +439,7 @@ $('.save-new').on('click', function(e) {
 function update_or_save_new(data, request_type, new_quote_no = 0){
     let main=data.results;
     let quote_id = (new_quote_no == 0)? main.quote_no : new_quote_no;
-    //console.log('results: ', data.results);
+    
     $('#add-quote-block').show();
     $('#quote_no').val(quote_id);
     $('html, body').animate({ scrollTop: 0 }, 'slow');
@@ -497,199 +498,6 @@ function update_or_save_new(data, request_type, new_quote_no = 0){
       }
   });
 }
-function openPrintableForm(quoteData) {
-  const textVals = {}; // Declare textVals outside the if-else block
-
-  if (quoteData.lang == 'en'){
-      Object.assign(textVals, {
-          'date': 'Date',
-          'valid_until': 'Valid until',
-          'pelatis': 'Client',
-          'perigrafi': 'Description',
-          'monadas': 'Unit price',
-          'posotita': 'Quantity', 
-          'timi': 'Price',
-          'synolo_prin': 'Total (Before VAT)', 
-          'delivery_time': 'Delivery time',
-          'fpa': 'VAT',
-          'syn': 'plus VAT',
-          'symp': 'VAT incl.',
-          'synolo_meta1': 'Total after VAT',
-          'ekptosi': 'Discount',
-          'synolo_meta2': 'Total after discount',
-          'ektimomenos': 'Expected delivery time',  
-          'efxarist': 'Thanks for doing business with us'
-      });
-  } else {
-      Object.assign(textVals, {
-          'date': 'Ημερομηνία',
-          'valid_until': 'Ισχύει μέχρι',
-          'pelatis': 'Πελάτης',
-          'perigrafi': 'Περιγραφή',
-          'monadas': 'Τιμή μονάδας',
-          'posotita': 'Ποσότητα', 
-          'timi': 'Τιμή',
-          'synolo_prin': 'Σύνολο (πριν το ΦΠΑ)', 
-          'fpa': 'Φ.Π.Α.',
-          'syn': 'συν ΦΠΑ',
-          'symp': 'ΦΠΑ συμπεριλ.',
-          'synolo_meta1': 'Σύνολο (μετά το ΦΠΑ)',
-          'ekptosi': 'Εκπτωση',
-          'synolo_meta2': 'Σύνολο (μετά την εκπτωση)',
-          'ektimomenos': 'Εκτιμώμενος χρόνος ολοκλήρωσης',  
-          'efxarist': 'Ευχαριστούμε για τη συνεργασία'
-      });
-  } // end of el texts
-  
-
-  var win = window.open('', '_blank');
-  var html = `
-      <html>
-      <head>
-          <title>Quote #${quoteData.quote_no}</title>
-          <style>
-              @media print {
-                  #printPageButton {
-                      display: none;
-                  }
-              }
-              body { font-family: 'Roboto', Arial, sans-serif; background:#ccc; }
-              .header, .footer { width:190mm; text-align: center; position: fixed; background: #fff; }
-              .header { top: 0px; }
-              .top {display:flex; justify-content: space-between;}
-              .footer { bottom: 0px; width:210mm;background: #fff; }
-              .content { margin: auto; padding:50px; background: #fff; width:98%;max-width:210mm; }
-              table { width: 100%; border-collapse: collapse; }
-              table, th, td { border: 1px solid black; }
-              th, td { padding: 10px; text-align: left; }
-          </style>
-      </head>
-      <body>
-          <div class="content">
-              <div class="top">
-                  <div><!--Left top-->
-                      <b>${quoteData.company_name}</b><br>
-                      ${quoteData.company_address}
-                      <p>${quoteData.company_phone}</p>
-                      <p>${quoteData.company_email}</p>
-                  </div>
-                  <div><!--Right top-->
-                      <span style="text-align:right;"># <b>${quoteData.quote_no}</b></span>
-                      
-                      
-                      <p>
-                        ${textVals.date}: ${quoteData.creation_date}<br>
-                        ${textVals.valid_until}: ${quoteData.valid_until}<br>
-                      </p>
-                      <p>&nbsp;</p>
-                      <p><u>${textVals.pelatis}: </u><br>
-                       ${quoteData.client_name}<br>
-                      ${quoteData.client_address}<br>
-                      ${quoteData.client_phone}<br>
-                      ${quoteData.client_email}<br></p>
-                  </div>
-              </div>
-              <h2>${quoteData.product_description}</h2>
-              <table>
-                  <thead>
-                      <tr>
-                          <th>${textVals.perigrafi}</th>
-                          <th>${textVals.monadas}</th>
-                          <th>${textVals.posotita}</th>
-                          <th>${textVals.timi}</th>
-                      </tr>
-                  </thead>
-                  <tbody>`;
-  
-  quoteData.items.forEach(function(item) {
-      html += `
-                      <tr>
-                          <td>${item.description}</td>
-                          <td>${item.unit_price}</td>
-                          <td>${item.quantity}</td>
-                          <td>${item.price}</td>
-                      </tr>`;
-  });
-
-  html += `       <tr><td colspan="3"><strong>${textVals.synolo_prin}:</strong></td><td>${quoteData.total_before_vat}</td></tr>
-                  <tr><td colspan="3">${textVals.fpa} (${quoteData.vat}%) ${quoteData.plus_inc_vat == 1 ? textVals.syn : textVals.symp}:</td><td> ${quoteData.vat_price}</td></tr>
-                  <tr><td colspan="3"><strong>${textVals.synolo_meta1}:</strong></td><td> <b>${quoteData.total_after_vat}</b></td></tr>
-              `;
-          
-  
-  if (quoteData.discount_val > 0) {
-      html += `
-          <tr><td colspan="3">${textVals.ekptosi}: ${quoteData.discount_description}</td><td>${quoteData.discount_val}</td></tr>
-          <tr><td colspan="3"><b>${textVals.synolo_meta2}:</b></td><td>${quoteData.total_after_discount}</td></tr>
-          `;
-  }
-
-  html += `
-          </tbody>
-          </table>
-          <p><strong>${textVals.ektimomenos}:</strong> ${quoteData.delivery_time}</p>
-          <p>&nbsp;</p>
-          <p style="text-align:center">${textVals.efxarist}</p>
-      </div>
-      <div><button id="printPageButton" onClick="window.print();">Print</button> 
-  </body>
-  </html>`;
-
-  win.document.write(html);
-  win.document.close();
-}
-
-/** PDF ======================================================= */
-  // Create PDF button click
-  jQuery(document).ready(function($) {
-    $('.create-pdf').on('click', function() {
-        let quoteId = $(this).data('quote-id');
-        
-        // Generate the PDF
-        $.ajax({
-            url: pdfAjax.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'generate_quote_pdf',
-                quote_id: quoteId
-            },
-            success: function(response) {
-                // No need to use JSON.parse, as response is already parsed
-                if (response.success) {
-                    // Provide a download link or automatically download the PDF
-                    window.open(response.data.pdf_url, '_blank');
-                } else {
-                    alert('Failed to create PDF.');
-                }
-            },
-            error: function() {
-                alert('Error occurred while creating PDF.');
-            }
-        });
-    });
-});
-
-//pdf end
-
-$('.email-quote').on('click', function() {
-  var quoteId = $(this).data('quote-id');
-  $.ajax({
-      url: emailQuoteAjax.ajaxurl,
-      type: 'POST',
-      data: {
-          action: 'send_quote_to_client',
-          quote_id: quoteId
-      },
-      success: function(response) {
-          var responseObj = JSON.parse(response);
-          if (responseObj.success) {
-              alert('Quote sent to client on: ' + responseObj.email);
-          } else {
-              alert('Failed to send quote: ' + responseObj.error);
-          }
-      }
-  });
-});
 
 $('.delete-quote').on('click', function() {
   let quoteId = $(this).data('quote-id');
@@ -728,10 +536,7 @@ $('.delete-quote').on('click', function() {
       });
   }
 });
-
-
-
-  // End of quote actions ====================
+// End of quote actions ====================
 
 
 /** =============      INVOICES SECTION ================================================== */
@@ -796,13 +601,14 @@ $('.view-invoice').on('click', function() {
     url: invoiceAjax.ajaxurl,  // Use the localized ajaxurl
     type: 'POST',
     data: {
-        action: 'fetch_invoice_data',
-        invoice_id: invoiceId
+        action: 'fetch_data_for_print',
+        this_id: invoiceId,
+        source: 'invoice'
     },
     success: function(response) {
         console.log('AJAX Success: ', response);
         if (response.success) {
-            openPrintableFormInv(response.data);
+            openPrintableForm(response.data, 'invoice');
         } else {
             alert('Failed to fetch invoice data: ' + response.data);
         }  
@@ -847,7 +653,6 @@ $('.save-new-inv').on('click', function(e) {
       success: function(response) {
         let data = JSON.parse(response);
         let request_type = "savenew";
-        console.log(data);
         let new_invoice_no = data.invoice_no;
         update_or_save_new_inv(data, request_type, new_invoice_no);
         $('#list-invoices').hide();
@@ -925,93 +730,159 @@ function update_or_save_new_inv(data, request_type, new_invoice_no = 0){
         `);
   });
 }
+// ========================= PRINT : Shared Between Invoices and Projects ================================================
+function openPrintableForm(invoiceData, source = 'project') {
+  const textVals = {
+      'date': 'Date',
+      'pelatis': 'Client',
+      'perigrafi': 'Description',
+      'monadas': 'Unit price',
+      'posotita': 'Quantity',
+      'timi': 'Price',
+      'synolo_prin': 'Total (Before VAT)',
+      'fpa': 'VAT',
+      'syn': 'plus VAT',
+      'symp': 'VAT incl.',
+      'synolo_meta1': 'Total after VAT',
+      'ekptosi': 'Discount',
+      'synolo_meta2': 'Total after discount',
+      'trapeza': 'Bank details'
+  };
 
-function openPrintableFormInv(invoiceData) {
-  const textVals = {}; // Declare textVals outside the if-else block
+  let no = invoiceData.no.toString().padStart(4, '0');
 
-  if (invoiceData.lang == 'en'){
-      Object.assign(textVals, {
-          'date': 'Date',
-          'pelatis': 'Client',
-          'perigrafi': 'Description',
-          'monadas': 'Unit price',
-          'posotita': 'Quantity', 
-          'timi': 'Price',
-          'synolo_prin': 'Total (Before VAT)', 
-          'delivery_time': 'Delivery time',
-          'fpa': 'VAT',
-          'syn': 'plus VAT',
-          'symp': 'VAT incl.',
-          'synolo_meta1': 'Total after VAT',
-          'ekptosi': 'Discount',
-          'synolo_meta2': 'Total after discount',
-          'trapeza': 'Bank details',  
-          'efxarist': 'Thanks for doing business with us'
-      });
+  let dateParts, formattedDate;
+  if (source == 'project'){
+    dateParts = invoiceData.creation_date.split('-');
+    formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+  }else{
+    formattedDate = invoiceData.creation_date;
+  }
+
+  // Set default values for to_include if it's null or undefined
+  let to_include = invoiceData.include || 'our_address,client_address,bank_details,thanks_msg';
+
+  // Initialize variables for dynamic content
+  let bankDiv = '', thanksDiv = '', clientAddressDiv = '<br>', ourAddressDiv = '<br>';
+ 
+  // Check if source is not 'project' or empty_checker is true
+  if (source !== 'project' || !invoiceData.include) {
+    // Generate content based on to_include
+    if (to_include.includes('client_address')) {
+      clientAddressDiv = invoiceData.client_address ? `<br>${invoiceData.client_address}<br>` : '<br>';
+    }
+
+    if (to_include.includes('thanks_msg')) {
+      thanksDiv = `
+        <div style="text-align:center;margin-top:2em;">
+          ${invoiceData.company_thanks}
+        </div>
+      `;
+    }
+
+    if (to_include.includes('bank_details')) {
+      bankDiv = `
+        <div style="text-align:left;margin-top:2em;">
+          <p><u>You can transfer your payment to the following account:</u></p>
+          ${invoiceData.company_bank}
+        </div>
+      `;
+    }
+
+    if (to_include.includes('our_address')) {
+      ourAddressDiv = '<br>' + invoiceData.company_address;
+    }
   } else {
-      Object.assign(textVals, {
-          'date': 'Ημερομηνία',
-          'pelatis': 'Πελάτης',
-          'perigrafi': 'Περιγραφή',
-          'monadas': 'Τιμή μονάδας',
-          'posotita': 'Ποσότητα', 
-          'timi': 'Τιμή',
-          'synolo_prin': 'Σύνολο (πριν το ΦΠΑ)', 
-          'fpa': 'Φ.Π.Α.',
-          'syn': 'συν ΦΠΑ',
-          'symp': 'ΦΠΑ συμπεριλ.',
-          'synolo_meta1': 'Σύνολο (μετά το ΦΠΑ)',
-          'ekptosi': 'Εκπτωση',
-          'synolo_meta2': 'Σύνολο (μετά την εκπτωση)',
-          'trapeza': 'Τραπεζ. λογαριασμός',  
-          'efxarist': 'Ευχαριστούμε για τη συνεργασία'
-      });
-  } // end of el texts
-  
+    to_include = JSON.parse(to_include);
+    // Handle the case where source is 'project' and include is defined
+    if (to_include.client_address && to_include.client_address.set === 'set') {
+      var passed_from_s = 'passed else';
+      clientAddressDiv = `<br>${to_include.client_address.value}<br>`;
+    }
+
+    if (to_include.our_address && to_include.our_address.set === 'set') {
+      ourAddressDiv = `<br>${to_include.our_address.value}<br>`;
+    }
+
+    if (to_include.thanks_message && to_include.thanks_message.set === 'set') {
+      thanksDiv = `
+        <div style="text-align:${to_include.thanks_message.position};margin-top:2em;">
+            ${to_include.thanks_message.value}
+        </div>
+      `;
+    }
+
+    if (to_include.bank_details && to_include.bank_details.set === 'set') {
+      bankDiv = `
+        <div style="text-align:${to_include.bank_details.position};margin-top:2em;">
+          <p><u>You can transfer your payment to the following account:</u></p>
+          ${to_include.bank_details.value}
+        </div>
+      `;
+    }
+  }
   var win = window.open('', '_blank');
+
+  // Construct the HTML string
   var html = `
       <html>
       <head>
-          <title>Invoice #${invoiceData.invoice_no}</title>
+          <title>Invoice #${invoiceData.no}</title>
           <style>
               @media print {
-                  #printPageButton {
-                      display: none;
-                  }
+                  #printPageButton { display: none; }
               }
-              body { font-family: 'Roboto', Arial, sans-serif; background:#ccc; }
-              .header, .footer { width:190mm; text-align: center; position: fixed; background: #fff; }
-              .header { top: 0px; }
-              .top {display:flex; justify-content: space-between;}
-              .footer { bottom: 0px; width:210mm;background: #fff; }
-              .content { margin: auto; padding:50px; background: #fff; width:98%;max-width:210mm; }
-              table { width: 100%; border-collapse: collapse; }
-              table, th, td { border: 1px solid black; }
-              th, td { padding: 10px; text-align: left; }
+              @page { size: A4; margin: 10mm; }
+              body { 
+                      font-family: 'Roboto', Arial, sans-serif; background:#ccc; 
+                    }
+              .header, .footer { 
+                    width:100%; text-align: center; position: fixed; background: #fff; 
+                    }
+              .header { 
+                    top: 0px; 
+                    }
+              .top { 
+                    display:flex; justify-content: space-between; 
+                    }
+              .footer { 
+                    bottom: 0px; width:210mm; background: #fff; 
+                    }
+              .content { 
+                    width: 100%;
+                    margin: auto; padding:10mm; background: #fff; 
+                    max-width:190mm; 
+                    min-height: 277mm;
+                    }
+              table { 
+                    width: 100%; border-collapse: collapse; 
+                    }
+              table, th, td { 
+                    border: 1px solid black; 
+                    }
+              th, td { 
+                    padding: 10px; text-align: left; 
+                    }
           </style>
       </head>
       <body>
           <div class="content">
               <div class="top">
-                  <div><!--Left top-->
-                      <b>${invoiceData.company_name}</b><br>
-                      ${invoiceData.company_address}
+                  <div>
+                      <b>${invoiceData.company_name}</b>
+                        ${ourAddressDiv}
                       <p>${invoiceData.company_phone}</p>
                       <p>${invoiceData.company_email}</p>
                   </div>
-                  <div><!--Right top-->
-                      <span style="text-align:right;"># <b>${invoiceData.invoice_no}</b></span>
-                      
-                      
-                      <p>
-                        ${textVals.date}: ${invoiceData.creation_date}<br>
-                      </p>
-                      <p>&nbsp;</p>
+                  <div>
+                      <span style="text-align:right;"># <b>${no}</b></span>
+                      <p>${textVals.date}: ${formattedDate}<br></p>
                       <p><u>${textVals.pelatis}: </u><br>
-                       ${invoiceData.client_name}<br>
-                      ${invoiceData.client_address}<br>
-                      ${invoiceData.client_phone}<br>
-                      ${invoiceData.client_email}<br></p>
+                        ${invoiceData.client_name}<br>
+                        ${clientAddressDiv}
+                        ${invoiceData.client_phone ? `${invoiceData.client_phone}<br>` : ''}
+                        ${invoiceData.client_email ? `${invoiceData.client_email}<br>` : ''}
+                      </p>
                   </div>
               </div>
               <h2>${invoiceData.product_description}</h2>
@@ -1025,96 +896,41 @@ function openPrintableFormInv(invoiceData) {
                       </tr>
                   </thead>
                   <tbody>`;
-  
+
   invoiceData.items.forEach(function(item) {
       html += `
                       <tr>
-                          <td>${item.description}</td>
+                          <td>${source !== 'project' ? item.description : item.type}</td>
                           <td>${item.unit_price}</td>
                           <td>${item.quantity}</td>
                           <td>${item.price}</td>
                       </tr>`;
   });
 
-  html += `       <tr><td colspan="3"><strong>${textVals.synolo_prin}:</strong></td><td>${invoiceData.total_before_vat}</td></tr>
-                  <tr><td colspan="3">${textVals.fpa} (${invoiceData.vat}%) ${invoiceData.plus_inc_vat == 1 ? textVals.syn : textVals.symp}:</td><td> ${invoiceData.vat_price}</td></tr>
-                  <tr><td colspan="3"><strong>${textVals.synolo_meta1}:</strong></td><td> <b>${invoiceData.total_after_vat}</b></td></tr>
-              `;
-          
-  
+  html += `<tr><td colspan="3"><strong>${textVals.synolo_prin}:</strong></td><td>${invoiceData.total_before_vat}</td></tr>
+           <tr><td colspan="3">${textVals.fpa} (${invoiceData.vat}%) ${invoiceData.plus_inc_vat == 1 ? textVals.syn : textVals.symp}:</td><td> ${invoiceData.vat_price}</td></tr>
+           <tr><td colspan="3"><strong>${textVals.synolo_meta1}:</strong></td><td> <b>${invoiceData.total_after_vat}</b></td></tr>`;
+
   if (invoiceData.discount_val > 0) {
       html += `
           <tr><td colspan="3">${textVals.ekptosi}: ${invoiceData.discount_description}</td><td>${invoiceData.discount_val}</td></tr>
-          <tr><td colspan="3"><b>${textVals.synolo_meta2}:</b></td><td>${invoiceData.total_after_discount}</td></tr>
-          `;
+          <tr><td colspan="3"><b>${textVals.synolo_meta2}:</b></td><td>${invoiceData.total_after_discount}</td></tr>`;
   }
 
-  let include = invoiceData.include;
-  console.log(include);
-  html += `
-          </tbody>
-          </table>
-          <p>&nbsp;</p>
-          <p style="text-align:center"><strong>${textVals.trapeza}:</strong></p>
-          ${include.indexOf('bank_details') !== -1 ? '<p style="text-align:center">' + invoiceData.company_bank + '</p>' : ''}
-      </div>
-      <div><button id="printPageButton" onClick="window.print();">Print</button> 
-  </body>
-  </html>`;
+  html += `</tbody></table>
+            ${thanksDiv}
+            ${bankDiv}
+          </div><!--End of Content -->
+          <div>
+              <button id="printPageButton" onClick="window.print();">🖨️ Print</button>
+          </div>
+      </body>
+      </html>`;
 
+  // Write the HTML to the new window
   win.document.write(html);
   win.document.close();
 }
-
-/** PDF ======================================================= */
-  // Create PDF button click
-  jQuery(document).ready(function($) {
-    $('.create-pdf-inv').on('click', function() {
-        let invoiceId = $(this).data('invoice-id');
-        // Generate the PDF
-        $.ajax({
-            url: pdfInvAjax.ajaxurl,
-            type: 'POST',
-            data: {
-                action: 'generate_invoice_pdf',
-                invoice_id: invoiceId
-            },
-            success: function(response) {
-                response = JSON.parse(response);
-                if (response.success) {
-                    // Provide a download link or automatically download the PDF
-                    window.open(response.pdf_url, '_blank');
-                } else {
-                    alert('Failed to create PDF.');
-                }
-            },
-            error: function() {
-                alert('Error occurred while creating PDF.');
-            }
-        });
-    });
-});
-//pdf end
-
-$('.email-invoice').on('click', function() {
-  let invoiceId = $(this).data('invoice-id');
-  $.ajax({
-      url: emailInvoiceAjax.ajaxurl,
-      type: 'POST',
-      data: {
-          action: 'send_invoice_to_client',
-          invoice_id: invoiceId
-      },
-      success: function(response) {
-          let responseObj = JSON.parse(response);
-          if (responseObj.success) {
-              alert('Invoice sent to client on: ' + responseObj.email);
-          } else {
-              alert('Failed to send invoice: ' + responseObj.error);
-          }
-      }
-  });
-});
 
 $('.cancel-invoice').on('click', function() {
   let invoiceId = $(this).data('invoice-id');
@@ -1148,92 +964,51 @@ $('.cancel-invoice').on('click', function() {
 
 
 
-  /** Balances ===================== */
+  /** ==========BALANCES ================================================= */
 
-  //select related invoice
-  jQuery(document).ready(function($) {
-    // Function to load invoices from the server
-    $("#find-inv").click(function(e) {
-      e.preventDefault();
-        $('#invoiceModal').appendTo("body").modal('show');
-    });
-
-    // Function to filter invoices in the modal
-    $('#searchInvoice').on('keyup', function() {
-        var value = $(this).val().toLowerCase();
-        $("#invoiceList tr").filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-        });
-    });
-
-    // Handle the click event on the useInv button to populate the form fields
-    $(document).on('click', '.useInv', function() {
-      $("#existing-payments").removeClass('d-none');
-        let invoiceNo = $(this).data('invoice-no');
-        let description = $(this).data('description');
-        let clientName = $(this).data('client-name');
-        let amount = $(this).data('amount');
-        let already = $(this).data('already');
-        let remain = $(this).data('remain');
-
-        $('#rel_invoice').val(invoiceNo);
-        $('#description').val(description);
-        $('#payer').val(clientName);
-        $('#amount').val(amount);
-        $('#type_of_payment').val('invoice');
-        $('.already').html(already);
-        $('.remain').html(remain);
-
-        $('#invoiceModal').modal('hide');
-    });
-}); //end select related invoice
-
-/** Balances, view, sort */
-jQuery(document).ready(function($) {
-  // Handle changes to any of the select elements
-  $('#year-select, #period-select, #type-select').change(function() {
-    var year = $('#year-select').val();
-    var period = $('#period-select').val();
-    var type = $('#type-select').val();
-
-    // Construct the URL with the new parameters
-    var url = new URL(window.location.href);
-    
-    // Set the year parameter
-    if (year !== 'other_period') {
-        url.searchParams.set('selyear', year);
-        // Remove period param if year is selected
-        url.searchParams.delete('period');
-    } else {
-        url.searchParams.set('selyear', 'other_period');
-        url.searchParams.set('period', period);
-    }
-
-    // Set the type parameter
-    url.searchParams.set('type', type);
-
-    // Reload the page with the updated URL
-    window.location.href = url.href;
+  //select related project
+  $('#type-select').change(function(){
+    var selectedValue = $(this).val();
+    window.location.href = '/balances/?paytype=' + selectedValue;
+  });
+  // Function to load projects from the server
+  $("#find-inv").click(function(e) {
+    e.preventDefault();
+      $('#projectModal').appendTo("body").modal('show');
   });
 
-  //show or hide other period in balances
-  function togglePeriodSelect() {
-      if ($('#year-select').val() === 'other_period') {
-          $('#period-select').closest('.col-md-4').show();
-      } else {
-          $('#period-select').closest('.col-md-4').hide();
-      }
-  }
-
-  // Initial check on page load
-  togglePeriodSelect();
-
-  // Handle change event
-  $('#year-select').on('change', function() {
-      togglePeriodSelect();
+  // Function to filter projects in the modal
+  $('#searchProject').on('keyup', function() {
+      var value = $(this).val().toLowerCase();
+      $("#projectList tr").filter(function() {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+      });
   });
 
-$('#search-balances').on('keyup', function() {
+  // Handle the click event on the useProj button to populate the form fields
+  $(document).on('click', '.useProj', function() {
+    $("#existing-payments").removeClass('d-none');
+      let projectId = $(this).data('project-id');
+      let description = $(this).data('description');
+      let clientName = $(this).data('client-name');
+      let amount = $(this).data('amount');
+      let already = $(this).data('already');
+      let remain = $(this).data('remain');
+
+      $('#rel_project_id').val(projectId);
+      $('#rel_project').val(description);
+      $('#description').val(description);
+      $('#payer').val(clientName);
+      $('#amount').val(amount);
+      $('#type_of_payment').val('pr_inv');
+      $('.already').html(already);
+      $('.remain').html(remain);
+
+      $('#projectModal').modal('hide');
+  });//end of related project
+
+  /** Balances, view, sort */
+  $('#search-balances').on('keyup', function() {
     var value = $(this).val().toLowerCase();
     $('#balances-table tbody tr').filter(function() {
         $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
@@ -1259,9 +1034,9 @@ $('#search-balances').on('keyup', function() {
             }
         });
     }
-});
+  });
 
-// edit balance
+  // edit balance
   $('.edit-icon').on('click', function() {
       var rowId = $(this).data('id');
       var inOut = $(this).data('inout'); // 1 for income, 2 for outcome
@@ -1275,71 +1050,71 @@ $('#search-balances').on('keyup', function() {
               id: rowId,
           },
           success: function(response) {
-              if (response.success) {
-                  var data = response.data;
+            if (response.success) {
+              var data = response.data;
 
-                  if (inOut == 1) {
-                      $('#add-in-block').show();
-                      $('#add-out-block').hide();
-                      $('#transaction-form-in #rel_invoice').val(data.rel_invoice);
-                      $('#transaction-form-in #description').val(data.description);
-                      $('#transaction-form-in #payer').val(data.payer_payee);
-                      $('#transaction-form-in #amount').val(data.amount);
-                      $('#transaction-form-in #type_of_payment').val(data.type_of_payment);
-                      $('#transaction-form-in #payment_date').val(data.payment_date);
-                      $('#transaction-form-in #record_id_in').val(data.id);//also pass the record id
-                      $(".btn[name='add-in-transaction']").val("Save changes");
-                      //$('#transaction-form-in').attr('action', ''); // Set appropriate action
-                  } else {
-                      $('#add-out-block').show();
-                      $('#add-in-block').hide();
-                      $('#transaction-form-out #rel_invoice').val(data.rel_invoice);
-                        $('#transaction-form-out #description').val(data.description);
-                        $('#transaction-form-out #payer').val(data.payer_payee);
-                        $('#transaction-form-out #amount').val(data.amount);
-                        $('#transaction-form-out #type_of_payment').val(data.type_of_payment);
-                        $('#transaction-form-out #payment_date').val(data.payment_date);
-                        $('#transaction-form-out #record_id_out').val(data.id);
-                      $(".btn[name='add-out-transaction']").val("Save changes");
-                      //$('#transaction-form-out').attr('action', ''); // Set appropriate action
-                  }
+              if (inOut == 1) {
+                  $('#add-in-block').show();
+                  $('#add-out-block').hide();
+                  $('#transaction-form-in #rel_project_id').val(data.rel_project_id);
+                  $('#transaction-form-in #rel_project').val(data.description);
+                  $('#transaction-form-in #description').val(data.description);
+                  $('#transaction-form-in #payer').val(data.payer_payee);
+                  $('#transaction-form-in #amount').val(data.amount);
+                  $('#transaction-form-in #type_of_payment').val(data.type_of_payment);
+                  $('#transaction-form-in #payment_date').val(data.payment_date);
+                  $('#transaction-form-in #record_id_in').val(data.id);//also pass the record id
+                  $(".btn[name='add-in-transaction']").val("Save changes");
+                  //$('#transaction-form-in').attr('action', ''); // Set appropriate action
               } else {
-                  // Handle errors
-                  alert('Error fetching data');
+                  $('#add-out-block').show();
+                  $('#add-in-block').hide();
+                  $('#transaction-form-out #rel_invoice').val(data.rel_invoice);
+                    $('#transaction-form-out #description').val(data.description);
+                    $('#transaction-form-out #payer').val(data.payer_payee);
+                    $('#transaction-form-out #amount').val(data.amount);
+                    $('#transaction-form-out #type_of_payment').val(data.type_of_payment);
+                    $('#transaction-form-out #payment_date').val(data.payment_date);
+                    $('#transaction-form-out #record_id_out').val(data.id);
+                  $(".btn[name='add-out-transaction']").val("Save changes");
+                  //$('#transaction-form-out').attr('action', ''); // Set appropriate action
               }
+            } else {
+                // Handle errors
+                alert('Error fetching data');
+            }
           }
       });
   });
 
-}); // end of document ready balances view, sort, del, edit
+ // === end of balances: view, sort, del, edit ===
 
-$('#add-new-in-btn').click(function(){
-  $('#add-in-block').toggle();
-  $('#add-out-block').hide();
-  if ($('#add-in-block').is(':visible')) {
-    // If #add-in-block is visible, hide .balances-container
-    $('.balances-container').hide();
-  } else {
+  $('#add-new-in-btn').click(function(){
+    $('#add-in-block').toggle();
+    $('#add-out-block').hide();
+    if ($('#add-in-block').is(':visible')) {
+      // If #add-in-block is visible, hide .balances-container
+      $('.balances-container').hide();
+    } else {
+        // If #add-in-block is not visible, show .balances-container
+        $('.balances-container').show();
+    }
+  });
+
+  $('#add-new-out-btn').click(function(){
+    $('#add-out-block').toggle();
+    $('#add-in-block').hide();
+    if ($('#add-out-block').is(':visible')) {
+      // If #add-in-block is visible, hide .balances-container
+      $('.balances-container').hide();
+    } else {
       // If #add-in-block is not visible, show .balances-container
       $('.balances-container').show();
-  }
-});
-
-$('#add-new-out-btn').click(function(){
-  $('#add-out-block').toggle();
-  $('#add-in-block').hide();
-  if ($('#add-out-block').is(':visible')) {
-    // If #add-in-block is visible, hide .balances-container
-    $('.balances-container').hide();
-  } else {
-     // If #add-in-block is not visible, show .balances-container
-    $('.balances-container').show();
-  }
-});
+    }
+  });
 
 
-//print balances table
-jQuery(document).ready(function($) {
+  //print balances table
   $('#print-table').on('click', function() {
       var printContents = document.getElementById('balances-table').outerHTML;
       var originalContents = document.body.innerHTML;
@@ -1351,10 +1126,58 @@ jQuery(document).ready(function($) {
       document.body.innerHTML = originalContents;
       location.reload();  // Reload the page to reset the state
   });
-});
 
 /** =============== STOCK ================ */
-$(document).ready(function() {
+  //prevent error with comma in decimal
+  $(".decimal-input").on("input", function () {
+      $(this).val($(this).val().replace(",", "."));
+  });
+
+  //filter outs by client
+  $('#out_client_filter').on('change', function () {
+      let selectedClientId = $(this).val(); // Get selected client ID
+
+      // Show all rows if "All clients" is selected
+      if (selectedClientId === 'all') {
+          $('table tbody tr').show();
+      } else {
+          // Hide all rows and show only those matching the selected client_id
+          $('table tbody tr').hide();
+          $(`table tbody tr[data-client-id='${selectedClientId}']`).show();
+      }
+  });
+  //show hide stock-ins
+  $('#toggle-ins-btn').on('click', function() {
+      var $btn = $(this);
+      var $container = $('#in_container');
+      
+      // Toggle visibility of #in_container
+      $container.toggle();
+      
+      // Change button text
+      if ($container.is(':visible')) {
+          $btn.text('Hide Ins');
+      } else {
+          $btn.text('Show Ins');
+      }
+  });
+
+  //show hide stock-outs
+  $('#toggle-outs-btn').on('click', function() {
+      var $btn = $(this);
+      var $container = $('#out_container');
+      
+      // Toggle visibility of #in_container
+      $container.toggle();
+      
+      // Change button text
+      if ($container.is(':visible')) {
+          $btn.text('Hide Outs');
+      } else {
+          $btn.text('Show Outs');
+      }
+  });
+
   $('#addStockBtn').on('click', function() {
       $('#add_stock').toggleClass('d-none');
       $('#stock_container').toggleClass('d-none');
@@ -1367,8 +1190,10 @@ $(document).ready(function() {
     $('.material-name-span').text(materialName);
     let mikos = $(this).data("mikos");
     $("label[for='out_mikos']").text("Length (max: " + mikos + ")");
+    $('#validate-mikos-max').val(mikos);
     let platos = $(this).data("platos");
-    $("label[for='out_platos']").text("Length (max: " + platos + ")");
+    $("label[for='out_platos']").text("Width (max: " + platos + ")");
+    $('#validate-platos-max').val(platos);
   });
   //show date input
   $(".toggle_date").click(function() {
@@ -1381,15 +1206,20 @@ $(document).ready(function() {
     if (selectValue === "new") {
         $("#new_client_input").removeClass("d-none");
         $("#new_project_input").removeClass("d-none");
+        $("#new_client_input").attr('required', 'required');
+        $("#new_project_input").attr('required', 'required');
     } else {
       //get option value and split '-'
       var parts = selectValue.split('-');
         if (parts[1] != '0'){
           $("#new_project_input").addClass("d-none");
+          $("#new_project_input").removeAttr('required');
         }else{
           $("#new_project_input").removeClass("d-none");
+          $("#new_project_input").attr('required', 'required');
         }
         $("#new_client_input").addClass("d-none");
+        $("#new_client_input").removeAttr('required');
     }
   });
 
@@ -1397,10 +1227,12 @@ $(document).ready(function() {
   $('.edit-out').on('click', function() {
       // Get data from the row
       var row = $(this).closest('tr');
-      var clientId = row.find('td:eq(5)').text() == '--' ? 0 : row.find('td:eq(5)').data('clientid'); 
-      var projectId = row.find('td:eq(5)').text() == '--' ? 0 : row.find('td:eq(5)').data('projectid'); 
-      var notes = row.find('td:first').data('note');
-      var stockOutId = row.find('td:first').data('stockoutid');
+      //var clientId = row.find('td:eq(5)').text() == '--' ? 0 : row.find('td:eq(5)').data('clientid'); 
+      //var projectId = row.find('td:eq(5)').text() == '--' ? 0 : row.find('td:eq(5)').data('projectid'); 
+      var clientId = row.find('td.out-td-lead').data('clientid');
+      var projectId = row.find('td.out-td-lead').data('projectid');
+      var notes = row.find('td.out-td-lead').data('note');
+      var stockOutId = row.find('td.out-td-lead').data('stockoutid');
       
       $('#stock_out_id_edit').val(stockOutId);
       (clientId > 0)? $('#client_project').val(clientId + '-' + projectId) : $('#client_project').val(0);
@@ -1408,6 +1240,52 @@ $(document).ready(function() {
 
       // Show the modal
       $('#editStockOutModal').modal('show');
+  });
+
+    //When the return-piece (for out/cut) button is clicked
+    $('.return-piece').on('click', function() {
+      // Get data from the row
+      let row = $(this).closest('tr');
+      let length = row.find('td:first').data('l');
+      let width = row.find('td:first').data('w');
+      let stockOutId = row.find('td:first').data('stockoutid');
+
+      //set maxes to check before submit
+      $('#max_l').val(length); 
+      $('#max_w').val(width);      
+      $('#stock_out_id_return').val(stockOutId);
+      // Set the placeholder value using jQuery
+      $('#r_length').attr('placeholder', 'Return length (max: ' + length + ')');
+      $('#r_width').attr('placeholder', 'Return width (max: ' + width + ')');
+      
+      // Show the modal
+      $('#returnPieceModal').modal('show');
+  });
+
+  //validate not exceeding max mikos platos on cuts
+  $('#useStockForm').on('submit', function(event) {
+    var outMikos = parseFloat($('#out_mikos').val());
+    var outPlatos = parseFloat($('#out_platos').val());
+    var maxMikos = parseFloat($('#validate-mikos-max').val());
+    var maxPlatos = parseFloat($('#validate-platos-max').val());
+
+    if (outMikos > maxMikos || outPlatos > maxPlatos) {
+        alert("The length/width you set cannot be greater than the max available");
+        event.preventDefault(); // Prevent the form from submitting
+    }
+  });
+
+  //validate return piece before submit
+  $('#returnPieceForm').on('submit', function(event) {
+    var max_l = parseFloat($('#max_l').val());
+    var max_w = parseFloat($('#max_w').val());
+    var r_length = parseFloat($('#r_length').val());
+    var r_width = parseFloat($('#r_width').val());
+    
+    if (r_width > max_w || r_length > max_l) {
+        alert("Cannot exceed maximum values");
+        event.preventDefault();
+    } 
   });
 
   //select type on change action
@@ -1427,12 +1305,41 @@ $(document).ready(function() {
             $(this).hide();
         }
     });
+    //then sum-up the visible to get total area
+    let sum = 0;
+    $('.this-in-area:visible').each(function () {
+      let value = parseFloat($(this).text()); // Convert the text inside <td> to float
+      if (!isNaN(value)) { // Check if the value is a valid number
+          sum += value;
+      }
+    });
+    $('.in-total-th').text(sum.toFixed(2));
   });
 
-});//end of stock ready
+// ===============    end of stock scripts ===
 
-/** =============== PROJECTS ================ */
-$(document).ready(function() {
+/** =========================== PROJECTS ==================================================================== */
+  $('#project-search').on('input', function() {
+    var searchTerm = $(this).val().toLowerCase(); // Get the search term and convert to lowercase
+
+    // Filter the project rows based on the search term
+    $('#data-list .project-row').each(function() {
+        var clientName = $(this).find('.col-md-3').text().toLowerCase(); // Client name column
+        var projectDescription = $(this).find('.col-md-5').text().toLowerCase(); // Project description column
+
+        // Check if the search term is present in either clientName or projectDescription
+        if (clientName.includes(searchTerm) || projectDescription.includes(searchTerm)) {
+            $(this).show(); // Show matching rows
+        } else {
+            $(this).hide(); // Hide non-matching rows
+        }
+    });
+  });
+
+  $('#filter-status').on('change', function() {
+    $('#status-filter-form').submit(); // Submit the form on status change
+  });
+
   $("#add-new-project-btn").click(function(){
     $("#add-project-block").toggle();
   });
@@ -1446,52 +1353,199 @@ $(document).ready(function() {
         $("#new_client_input").addClass("d-none");
     }
   });
-  // Toggle show/hide on click of the icon
-  $('.toggle-icon').on('click', function () {
-    // Find the closest .project-row, then find the next .project-more sibling and toggle its visibility
-    $(this).closest('.project-row').find('.project-more').toggleClass('d-none');
-    //when project card is exbanded creade a colored bg head for this card - remove on minimized
-    $(this).parent().toggleClass('project-head-bg');
-    $(this).parent().prev().toggleClass('project-details');
-    $(this).parent().prev().prev().toggleClass('project-details');
-    $(this).parent().prev().prev().prev().toggleClass('project-details');
 
-    // Toggle the icon between arrow up and arrow down
-    $(this).toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
+  //add items lines              
+  // Store a reference to the original .add-mat-template
+  const template = $(".add-mat-template").clone(true).removeClass("d-none");
+  const template_other = $(".add-other-template").clone(true).removeClass("d-none");
+  const template_other_list = $(".add-other-list-template").clone(true).removeClass("d-none");
+  $(".add-mat-template").remove();
+  $(".add-other-template").remove();
+  $(".add-other-list-template").remove();
+  const template_cost = $(".add-mat-template-cost").clone(true).removeClass("d-none");
+  const template_other_cost = $(".add-other-template-cost").clone(true).removeClass("d-none");
+  const template_other_list_cost = $(".add-other-list-template-cost").clone(true).removeClass("d-none");
+  $(".add-mat-template-cost").remove();
+  $(".add-other-template-cost").remove();
+  $(".add-other-list-template-cost").remove();
+  
+
+  // Handle the Add Material Line button click
+  $("#add-mat-line").on("click", function () {
+      if ($(".add-mat-template:visible").length === 0) {
+          // First click: display the initial template
+          $("#items-container").append(template.clone());
+      } else {
+          // Subsequent clicks: clone and append
+          $(".add-mat-template:visible").last().after(template.clone());
+      }
   });
-  //add items lines
-                
 
-  $(document).on("click", "#add-mat-line", function() {
-    // Clone the first other item template
-    let newMat = $('#add-mat-template').first().clone();
-    newMat.removeClass('d-none'); // Remove the hidden class
-    newMat.appendTo('#items-container'); // Append the cloned item
+  $("#add-mat-line-cost").on("click", function () {
+    if ($(".add-mat-template-cost:visible").length === 0) {
+        // First click: display the initial template
+        $("#items-container-cost").append(template_cost.clone());
+    } else {
+        // Subsequent clicks: clone and append
+        $(".add-mat-template-cost:visible").last().after(template_cost.clone());
+    }
   });
 
-
-  $(document).on("click", "#add-other-line", function() {
-      // Clone the first other item template
-      let newOther = $('#add-other-template').first().clone();
-      newOther.removeClass('d-none'); // Remove the hidden class
-      newOther.appendTo('#other-items-container'); // Append the cloned item
+  // Handle the Add Material Line button click
+  $("#add-other-list-line").on("click", function () {
+    if ($(".add-other-list-template:visible").length === 0) {
+        // First click: display the initial template
+        $("#items-container").append(template_other_list.clone());
+    } else {
+        // Subsequent clicks: clone and append
+        $(".add-other-list-template:visible").last().after(template_other_list.clone());
+    }
   });
+
+    // Handle the Add Material Line button click
+    $("#add-other-list-line-cost").on("click", function () {
+      if ($(".add-other-list-template-cost:visible").length === 0) {
+          // First click: display the initial template
+          $("#items-container-cost").append(template_other_list_cost.clone());
+      } else {
+          // Subsequent clicks: clone and append
+          $(".add-other-list-template-cost:visible").last().after(template_other_list_cost.clone());
+      }
+    });
+
+  $("#add-other-line").on("click", function () {
+    if ($(".add-other-template:visible").length === 0) {
+      // First click: display the initial template
+      $("#items-container").append(template_other.clone());
+    } else {
+        // Subsequent clicks: clone and append
+        $(".add-other-template:visible").last().after(template_other.clone());
+    }
+  });
+
+  $("#add-other-line-cost").on("click", function () {
+    if ($(".add-other-template-cost:visible").length === 0) {
+      // First click: display the initial template
+      $("#items-container-cost").append(template_other_cost.clone());
+    } else {
+        // Subsequent clicks: clone and append
+        $(".add-other-template-cost:visible").last().after(template_other_cost.clone());
+    }
+  });
+  // ========= end of materials and others lines adds
+
+  //Show hide add costs
+  $('#add-cost-btn').on('click', function() { 
+    $('.buttons-row-costs').toggleClass('d-none'); 
+    $('.items-container1').toggleClass('d-none'); 
+  });
+
+  $(document).on('click', '.recalc', function() {
+    //var itemsContainer = $('#items-container2');
+    //var rowCount = (itemsContainer.find('.row').length) ; //subtract the to be deleted line
+    $(this).closest('.dynamic-line').remove();
+    if ($('#calculations').is(':visible')) {
+      $('#calculations').addClass('d-none');
+    }
+  });  
+  
 
   var total1_initial = 0; //to reset it in case user move from incl vat to plus vat
-  //calculate totals
+  // ======================= validator for calc totals ============================
   $('#calc-pr-prices').on('click', function() {
-    var total = 0;
-    $('#calculations').removeClass('d-none'); 
+    let total = 0;
+    let total_empty_checker = 1;
+    let isValid = 0;
     // Find all .show-price inputs and sum their values
-    $('.show-price').each(function() {
-        var price = parseFloat($(this).val()) || 0;  // Get the value and handle empty or invalid values
-        total += price;
+    $('#materials-outer .show-price').each(function() {
+      let price = parseFloat($(this).val()) || 0;  // Get the value and handle empty or invalid values
+      total += price;
+      total_empty_checker *= price; //if any line price is zero checker becomes zero
     });
+
+    //checker - price set
+    if (total_empty_checker == 0 ){
+      alert ("You didn't add any material, or you didn't price them");
+      return false;
+    }
+    //checker - type selected
+    $('#materials-outer .mat-type-checker').each(function() {
+      if ($(this).val() == 0 ){
+        alert ("You must select material type");
+        $(this).focus();
+        isValid = 1;
+        return false;
+      }
+    });
+    //if any nothing is added is empty
+    if (total == 0){
+      alert ("You did not add any materials");
+      isValid = 1;
+      if ($('#calculations').is(':visible')) { //in case user first proceeds and then 
+        $('#calculations').addClass('d-none');
+      }
+    }
+
+    if (isValid == 1){
+      return false;
+    }
+    //show next part
+    $('#calculations').removeClass('d-none'); 
     total1_initial = total;
     // Display the result inside #pr_total1
     $('#pr_total1').val(total.toFixed(2));  // Set the total, formatted to 2 decimal places
-    $('#pr_price_vat').val(0); 
-    $('#pr_total2').val(total.toFixed(2)); 
+    let vat = parseFloat($('#pr-vat').val()) / 100;
+    let vat_price = total * vat;
+    let total_after_vat = total + vat_price;
+    $('#pr_price_vat').val(vat_price.toFixed(2)); 
+    $('#pr_total2').val(total_after_vat.toFixed(2)); 
+  });
+
+  // ======================= validator for costs ================================
+  $('#costs-form').on('submit', function(event) {
+    let isValid = true;
+    let local_total = 0;
+    let total_empty_checker = 1;
+
+    $('#items-container-cost .show-price').each(function() {
+        let price = parseFloat($(this).val()) || 0;  
+        local_total += price;
+        total_empty_checker *= price; // if any line price is zero checker becomes zero
+    });
+
+    // checker - price set
+    if (total_empty_checker == 0) {
+        alert("You didn't add any material, or you didn't price them");
+        return false; // Prevent form submission
+    }
+
+    $('#items-container-cost .mat-type-checker').each(function() {
+        if ($(this).val() == 0) {
+            alert("You must select material type");
+            $(this).focus();
+            isValid = false;
+            return false; // Exit loop and prevent form submission
+        }
+    });
+
+    if ($('#items-container-cost .show-price').length == 0) {
+        alert("You did not add any materials");
+        return false; // Prevent form submission
+    }
+
+    return isValid; // If valid, form will submit naturally
+  });
+
+  
+  // ================ complete project ==============================================
+  $('button[name="complete_project"]').click(function(event) {
+      var remainingAmount = parseFloat($('#project-remaining').text().replace(/,/g, '')); // Get and parse the value of #project-remaining
+      if (remainingAmount > 0) {
+          var confirmMessage = "The project has still not paid balance. Are you sure that you want to mark it as completed?";
+          if (!confirm(confirmMessage)) {
+              event.preventDefault(); // Prevent form submission if the user cancels
+          }
+      }
   });
 
   $('#add-payment-btn').on('click', function() {
@@ -1505,50 +1559,384 @@ $(document).ready(function() {
   $('input[type=radio][name=plus-inc-vat]').change(function() {
         doCalculations();
   });
+  
+  $(document).on( "keyup", "#discount_val_pr" , function() {
+    doCalculations();
+  });
 
-  function doCalculations(){
-    var total1 = total1_initial;
-    var vat = parseFloat($('#pr-vat').val());
+  var discount_pr = 0;
+  $("#add-discount-pr").click(function() {
+    $("#discount_val").val(0); // Reset value every time the user toggles the discount option
+    discount_pr = 0;
+    $("#discount-cont").toggle(); // Toggle the discount container
     
+    // Check the display state and set button text accordingly
+    if ($("#discount-cont").is(":visible")) {
+        $(this).text("Remove Discount");
+    } else {
+        $(this).text("Add Discount");
+    }
+    doCalculations();
+  });
+
+  function doCalculations() {
+    let total1 = parseFloat(total1_initial); // Ensure initial total is a number
+    let vat = parseFloat($('#pr-vat').val()); // Parse VAT as a number
+    let discount = 0;
+
+    if ($("#discount-cont").is(":visible") && parseFloat($("#discount_val_pr").val()) > 0) { 
+      discount = parseFloat($("#discount_val_pr").val()); // Parse discount as a number
+    }
+
     if ($('#pr-radio-vat1').is(':checked')) {
+        let price_vat = (total1 * (vat / 100)).toFixed(2); // VAT amount
+        let price_after_vat = (Number(price_vat) + total1 - discount).toFixed(2); // Final price after VAT and discount
+
+        // Adjust calculations if discount > 0
+        if (discount > 0) {
+            total1 = (price_after_vat / (1 + (vat / 100))).toFixed(2); // Recalculate base price
+            price_vat = (total1 * (vat / 100)).toFixed(2); // Recalculate VAT
+        }
+
+        // Update fields
         $('#pr_total1').val(total1);
-        var result = (total1 * (vat / 100)).toFixed(2);
-        $('#pr_price_vat').val(result);
-        $('#pr_total2').val((parseFloat(result) + total1).toFixed(2));
+        $('#pr_price_vat').val(price_vat);
+        $('#pr_total2').val(price_after_vat);
     } else if ($('#pr-radio-vat2').is(':checked')) {
-        var total2 = total1_initial;
-        let new_total1 = (total2 / (1 + (vat / 100))).toFixed(2);
+        let total2 = parseFloat(total1_initial); // Final total provided
+        let new_total1 = (total2 / (1 + (vat / 100))).toFixed(2); // Base price before VAT
+        let vat2 = (total2 - new_total1).toFixed(2); // VAT amount
+
+        // Update fields
         $('#pr_total1').val(new_total1);
-        let var2 = (total2 - new_total1).toFixed(2);
-        $('#pr_price_vat').val(var2);
+        $('#pr_price_vat').val(vat2);
         $('#pr_total2').val(total2.toFixed(2));
+    }
+
+    // Display discount note if applicable
+    if (discount > 0) {
+        $('#disc_note').text('(€' + discount + ' discount applied)');
     }
   }
 
-  //badge based on state
-  /*
-  if ($('#rem_amount').length) {
-    var value = parseFloat($('#rem_amount').val());
-    if (value === 0) {
-        $('.this-pr-badge span').text('Completed').removeClass('bg-dark bg-success').addClass('bg-secondary');
-    } else if (value > 0) {
-        $('.this-pr-badge span').text('Progress').removeClass('bg-dark bg-secondary').addClass('bg-success');
-    }
-  } */
-    $('#editDescriptionLink').on('click', function(e) {
-      e.preventDefault();
-      var initial = $(this).data('initial');
-      var prId = $(this).data('project-id');
-      $('#mod_description').val(initial);
-      $('#mod_project_id').val(prId);
+  $('.editDescriptionLink').on('click', function (e) {
+    e.preventDefault();
+    let descr = $(this).data('descr'); // Get description data
+    let prId = $(this).data('project-id'); // Get project ID
+    let status = $(this).data('status'); // Get current status
 
-      // Open the modal
-      $('#editDescriptionModal').modal('show');
+    // Set initial values in modal fields
+    $('#mod_description').val(descr); 
+    $('#mod_project_id').val(prId); 
+
+    // Handle the status dropdown
+    const $modStatus = $('#mod_status');
+    $modStatus.empty(); // Clear previous options
+
+    if (status === "START") {
+        // Disable or remove the dropdown if status is "START"
+        $modStatus.prop('disabled', true).append('<option value="START" selected>You cannot modify status on START</option>');
+    } else {
+        // Enable the dropdown and populate it with options
+        $modStatus.prop('disabled', false).append(`
+            <option value="PROGRESS" ${status === 'PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+            <option value="COMPLETED" ${status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+            <option value="INCOMPLETE" ${status === 'INCOMPLETE' ? 'selected' : ''}>INCOMPLETE</option>
+        `);
+    }
+
+    // Open the modal
+    $('#editDescriptionModal').modal('show');
   });
-  //delete project
-  $('.delete-icon-project').on('click', function() {
-    if(confirm("Are you sure you want to delete this project?")) {
-      $('#delProjectForm').submit();
+
+  $('.create-proj-invoice').on('click', function() {
+    let projectId = $(this).data('project-id');
+    
+    $.ajax({
+      url: projInvAjax.ajaxurl,  // Use the localized ajaxurl
+      type: 'POST',
+      data: {
+          action: 'fetch_data_for_print',
+          this_id: projectId,
+          source: 'project'
+      },
+      success: function(response) {
+          console.log('AJAX Success: ', response);
+          if (response.success) {
+              openPrintableForm(response.data, 'project');
+          } else {
+              alert('Failed to fetch project inv data: ' + response.data);
+          }  
+        },
+      error: function(xhr, status, error) {
+          console.log('AJAX Error: ', xhr.responseText);
+          alert('An error occurred while fetching project inv data.');
+      }
+    });
+  });
+  // ===============    end of projects scripts
+
+  // =============== TASKS ============================
+  $('.material-checkbox, .tool-checkbox').on('change', function () {
+    const parentRow = $(this).closest('.row');
+    const quantityInputContainer = parentRow.find('.quantity-input-container');
+    const outNoteContainer = parentRow.find('.out-note-container');
+    const quantityInput = parentRow.find('.quantity-input');
+    const noteInput = parentRow.find('input[name$="[notes]"]');
+
+    if ($(this).is(':checked')) {
+        quantityInputContainer.removeClass('d-none');
+        outNoteContainer.removeClass('d-none');
+        quantityInput.prop('required', true); // Ensure quantity is required
+    } else {
+        quantityInputContainer.addClass('d-none');
+        outNoteContainer.addClass('d-none');
+        quantityInput.prop('required', false);
+        noteInput.val(''); // Clear note input
+        quantityInput.val(''); // Clear quantity input
     }
   });
-});
+
+  $('#createTaskBtn').on('click', function () {
+      $('#create-task-box').toggleClass('d-none');
+  });
+
+  //if user needs to add new client 
+  $(".client_s").change(function() {
+      var selectValue = $(this).val();
+      if (selectValue === "new") {
+          $(".new_client_input").removeClass("d-none");
+          $(".new_project_input").removeClass("d-none");
+          $(".new_client_input").attr('required', 'required');
+          $(".new_project_input").attr('required', 'required');
+      } else {
+      //get option value and split '-'
+      var parts = selectValue.split('-');
+          if (parts[1] != '0'){
+          $(".new_project_input").addClass("d-none");
+          $(".new_project_input").removeAttr('required');
+          }else{
+          $(".new_project_input").removeClass("d-none");
+          $(".new_project_input").attr('required', 'required');
+          }
+          $(".new_client_input").addClass("d-none");
+          $(".new_client_input").removeAttr('required');
+      }
+    });
+
+  // Function to clone and add a new row
+  $('.btn-add-row').on('click', function() {
+    let row = $(this).closest('.row');
+    let newRow = row.clone();
+    newRow.find('.btn-add-row').remove();
+    newRow.find('input').val(''); // Clear input values
+    newRow.find('select').val('0'); // Reset select value
+    newRow.insertAfter(row);
+  });
+
+  // Function to remove a row
+  $(document).on('click', '.btn-remove-row', function() {
+      $(this).closest('.row').remove();
+  });
+
+  //show the workers form part
+  $('.updateTaskBtn').on('click', function () {
+    var target = $(this).data('target'); // Get the data-target value
+    $('#' + target).toggleClass('d-none'); // Toggle the form with the matching ID
+  });
+
+  $('#task_date').on('change', function() {
+    var selectedDate = $(this).val();
+    window.location.href = '?task_date=' + selectedDate;
+  });
+
+  if ($('#taskForm').length > 0) { // i use this to create constants only when on task page
+    //edit task 
+    $(".edit-task-btn").on("click", function() {
+        reset_task_create(); //first initialize the form so it is not add new fields everytime the pencils is clicked
+        let taskId = $(this).data("task-id");
+        let description = $(this).data("description");
+        let clientId = $(this).data("client-id");
+        let projectId = $(this).data("project-id");
+        let sortOrder = $(this).data("sort-order");
+        let materials = $(this).data("materials");//json parce not needed
+        let others = $(this).data("others");
+        let tools = $(this).data("tools");
+        let location = $(this).data("map-location");
+        let photos = $(this).data("photos");
+
+        
+        // Set values in the form
+        $("#task_id").val(taskId);
+        tinymce.get('description').setContent(description); // Set WP Editor content
+        $("#client_id").val(clientId).trigger("change");
+        $("#project_id").val(projectId).trigger("change");
+        $("#map-location").val(location);
+        $("#sort_order").val(sortOrder);
+
+        let materialsContainer = $("#materials-line");
+
+        // Loop through each material
+        $.each(materials, function(index, item) {
+            // Create the new material HTML
+            let materialHTML = `
+                <div class="row my-2 align-items-center">
+                    <div class="col-md-3">
+                        <select name="mat_type[]" class="form-select mat-type-checker-task">
+                            <option value="${item.name}" selected>${item.name}</option> 
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" name="mat_dimensions[]" class="form-control" value="${item.dimensions}"> 
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" name="mat_quantity[]" class="form-control" value="${item.quantity}"> 
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-light btn-remove-row">X</button>
+                    </div>
+                </div>
+            `;
+
+            // Add the new content before the initial #materials-line
+            materialsContainer.before(materialHTML);
+        });
+
+        $.each(others, function(index, other) {
+          // Find the checkbox by ID
+          let checkbox = $('#other_' + other.id);
+          if (checkbox.length) {
+              // Check the checkbox
+              checkbox.prop('checked', true);
+
+              // Find the parent row
+              var row = checkbox.closest('.row');
+
+              // Show the quantity and notes inputs
+              row.find('.quantity-input-container, .out-note-container').removeClass('d-none');
+
+              // Populate the quantity and notes fields
+              row.find('.quantity-input').val(other.quantity);
+              row.find('.out-note-container input').val(other.notes);
+          }
+        }); 
+
+        $.each(tools, function(index, tool) {
+          // Find the checkbox by ID
+          let checkbox = $('#tool_' + tool.id);
+          if (checkbox.length) {
+              // Check the checkbox
+              checkbox.prop('checked', true);
+
+              // Find the parent row
+              var row = checkbox.closest('.row');
+
+              // Show the quantity and notes inputs
+              row.find('.quantity-input-container, .out-note-container').removeClass('d-none');
+
+              // Populate the quantity and notes fields
+              row.find('.quantity-input').val(tool.quantity);
+              row.find('.out-note-container input').val(tool.notes);
+          }
+        }); 
+  
+      // Handle Photos - Preview
+      if (photos && photos.length > 0) {
+        let previewContainer = $("#photo-preview");
+        previewContainer.html(""); // Clear old previews
+
+        photos.forEach((photoURL, index) => {
+            let encodedURL = encodeURIComponent(photoURL); // Encode URL for safe storage in data attribute
+
+            let photoHTML = `
+                <div class="photo-item d-inline-block m-1" data-photo-url="${encodedURL}">
+                    <img src="${photoURL}" class="img-thumbnail" width="100">
+                    <input type="checkbox" name="delete_photos[]" value="${photoURL}" class="form-check-input ms-2"> Delete
+                </div>
+            `;
+
+            previewContainer.append(photoHTML);
+        });
+      }
+
+      // Change button text and action
+      $('#action_type').val('update_task');
+      $(".save-update-task").text("Apply changes");
+
+      // Show form (if hidden)
+      $("#create-task-box").removeClass("d-none");
+
+      $('html, body').animate({
+        scrollTop: $('#create-task-box').offset().top
+      }, 800); 
+    });
+
+    //for deleting photos after modification
+    $(document).on("change", "input[name='delete_photos[]']", function() {
+      let deletedPhotos = [];
+
+      $("input[name='delete_photos[]']:checked").each(function() {
+          deletedPhotos.push($(this).val()); // Use the original URL (no need to decode here)
+      });
+
+      $("#deleted-photos").val(JSON.stringify(deletedPhotos));
+    });
+
+    $('#completion_status').on('change', function () {
+      if ($(this).is(':checked')) {
+          $('#completion-status-label').text('Completed'); // Update label to "Completed"
+      } else {
+          $('#completion-status-label').text('Not Completed'); // Update label to "Not Completed"
+      }
+    });
+
+    //reset create/edit task form
+     // Store the initial state of the form
+    const initialFormState = $('#taskForm').serialize();
+    const initialSubmitButtonText = $('.save-update-task').text();
+    const initialActionTypeValue = $('#action_type').val();
+
+    // Reset button click event
+    $('#reset-form').on('click', function() {
+        reset_task_create();
+    });
+
+    function reset_task_create(){
+      // Reset the form fields
+      $('#taskForm')[0].reset();
+
+      // Reset the TinyMCE editor content (if used)
+      if (typeof tinymce !== 'undefined' && tinymce.get('description')) {
+          tinymce.get('description').setContent('');
+      }
+
+      // Reset the submit button text
+      $('.save-update-task').text(initialSubmitButtonText);
+
+      // Reset the hidden action_type value
+      $('#action_type').val(initialActionTypeValue);
+
+      // Reset any dynamically added material rows (if applicable)
+      $('#materials-line').siblings('.row').remove(); // Remove additional material rows
+      $('#materials-line').find('input').val(''); // Clear inputs in the first material row
+
+      // Reset photo preview and deleted photos (if applicable)
+      $('#photo-preview').empty();
+      $('#deleted-photos').val('');
+
+      // Reset checkboxes and their associated inputs (for tools and others)
+      $('.material-checkbox, .tool-checkbox').prop('checked', false);
+      $('.quantity-input-container, .out-note-container').addClass('d-none');
+      $('.quantity-input, .out-note-container input').val('');
+
+      // Optionally, reset any other custom fields or dynamic content
+    }
+  }
+
+  $(".setup-proj-invoice").on("click", function(event) {
+        event.preventDefault();
+        new bootstrap.Modal($("#invoiceSettingsModal")).show();
+    });
+  // =============== end tasks ========================
+
+});//end document ready

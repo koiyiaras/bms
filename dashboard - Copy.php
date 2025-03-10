@@ -7,7 +7,6 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
 ?>
     <div class="bms-container dashboard">
         <!--h2>Διαχείρηση - Dashboard</h2-->
-        <?php if (current_user_can('administrator')) : ?>
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
@@ -29,11 +28,9 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                 </div>
             </div>
         </div>
-        <?php endif; ?>
         <div id="dash-nav">
             <!--Row 1-->
             <div class="row text-center mt-4">
-                <?php if (current_user_can('administrator')) : ?>
                 <div class="col-md-6">
                     <a href="/clients/" class="btn btn-primary btn-lg btn-block mb-4">
                         <div class="card bg-primary text-white">
@@ -49,12 +46,11 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                         <div class="card bg-warning text-white">
                             <div class="card-body">
                                 <h5 class="card-title">Projects</h5>
-                                <p class="card-text"><span class="dashicons dashicons-welcome-widgets-menus"></span></p>
+                                <p class="card-text"><span class="dashicons dashicons-welcome-widgets-menus"></span></i></p>
                             </div>
                         </div>
                     </a>
                 </div>
-                <?php endif; ?>
             </div>
             <!--Row 2-->
             <div class="row text-center mt-4">
@@ -63,7 +59,7 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                         <div class="card bg-success text-white">
                             <div class="card-body">
                                 <h5 class="card-title">Our Stock</h5>
-                                <p class="card-text"><span class="dashicons dashicons-database"></span></p>
+                                <p class="card-text"><span class="dashicons dashicons-database"></span></i></p>
                             </div>
                         </div>
                     </a>
@@ -73,14 +69,13 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                         <div class="card bg-danger text-white">
                             <div class="card-body">
                                 <h5 class="card-title">Tasks</h5>
-                                <p class="card-text"><span class="dashicons dashicons-media-spreadsheet"></span></p>
+                                <p class="card-text"><span class="dashicons dashicons-media-spreadsheet"></span></i></p>
                             </div>
                         </div>
                     </a>
                 </div>
             </div>
             <!--Row 3-->
-            <?php if (current_user_can('administrator')) : ?>
             <div class="row text-center mt-4">
                 <div class="col-md-6">
                     <a href="/quotes/" class="btn btn-purple btn-lg btn-block mb-4">
@@ -97,7 +92,7 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                         <div class="card bg-orange text-white">
                             <div class="card-body">
                                 <h5 class="card-title">Invoices</h5>
-                                <p class="card-text"><span class="dashicons dashicons-format-aside"></span></p>
+                                <p class="card-text"><span class="dashicons dashicons-format-aside"></span></i></p>
                             </div>
                         </div>
                     </a>
@@ -119,13 +114,12 @@ $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
                         <div class="card bg-dark text-white">
                             <div class="card-body">
                                 <h5 class="card-title">Settings</h5>
-                                <p class="card-text"><span class="dashicons dashicons-admin-settings"></span></p>
+                                <p class="card-text"><span class="dashicons dashicons-admin-settings"></span></i></p>
                             </div>
                         </div>
                     </a>
                 </div>
             </div>
-            <?php endif; ?>
         </div>
     </div>
-<?php
+    <?php

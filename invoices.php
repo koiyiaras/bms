@@ -358,8 +358,6 @@ if (get_transient('invoice_updated_success')): ?>
                                 </button>
                                 <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1" style="list-style-type: none; padding: 1px;">
                                     <li><a class="dropdown-item save-new-inv" data-invoice-id="<?php echo esc_attr($invoice->id); ?>" href="#">Duplicate</a></li>
-                                    <li><a class="dropdown-item create-pdf-inv" data-invoice-id="<?php echo esc_attr($invoice->id); ?>" href="#">Create PDF</a></li>
-                                    <li><a class="dropdown-item email-invoice" data-invoice-id="<?php echo esc_attr($invoice->id); ?>" href="#">Email client</a></li>
                                     <?php if ($status != 'cancelled') { ?>
                                         <li><a class="dropdown-item cancel-invoice" data-invoice-id="<?php echo esc_attr($invoice->id); ?>" href="#">Cancel</a></li>
                                     <?php } ?>

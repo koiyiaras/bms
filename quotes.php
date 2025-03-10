@@ -271,8 +271,6 @@ if (get_transient('quote_updated_success')): ?>
                               </button>
                               <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1" style="list-style-type: none; padding: 1px;">
                                   <li><a class="dropdown-item save-new" data-quote-id="<?php echo esc_attr($quote->id); ?>" href="#">Duplicate</a></li>
-                                  <li><a class="dropdown-item create-pdf" data-quote-id="<?php echo esc_attr($quote->id); ?>" href="#">Create PDF</a></li>
-                                  <li><a class="dropdown-item email-quote" data-quote-id="<?php echo esc_attr($quote->id); ?>" href="#">Email client</a></li>
                                   <li><a class="dropdown-item make-invoice" href="<?php echo esc_url('/invoices/?quoteid=' . $quote->id); ?>">Create inv.</a></li>
                                   <li><a class="dropdown-item delete-quote" data-quote-id="<?php echo esc_attr($quote->id); ?>" href="#">Delete</a></li>
                               </ul>

@@ -5,7 +5,7 @@ Tags: business, management, invoicing, reporting, client-management
 Requires at least: 5.0
 Tested up to: 6.7.1
 Requires PHP: 7.2
-Stable tag: 1.0.0
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,10 +32,23 @@ Yes, the plugin is designed to be customizable. Check the documentation for more
 3. Screenshot of the client management interface.
 
 == Changelog ==
+= 1.0.2 =
+- Fixed code inconsistencies.
+- Fixed projects invoices price calculations.
+- Added year filtering for stock, projects, and balances.
+- Removed TCPDF library due to heavy sizes.
+- Add tasks management feature
+
 = 1.0.0 =
 Initial release of the BMS - Business Management System plugin.
 
 == Upgrade Notice ==
+= 1.0.1 =
+- Fixed code inconsistencies.
+- Fixed projects invoices price calculations.
+- Added year filtering for stock, projects, and balances.
+- Removed TCPDF library due to heavy sizes.
+
 = 1.0.0 =
 Initial release.
 

@@ -1,0 +1,151 @@
+/* SETTINGS PAGE */
+.settings-box {
+    max-width: 600px; 
+    margin: 10px auto; 
+    padding: 20px; 
+    border: 1px solid #ccc; 
+    border-radius: 5px; 
+    background-color: #f9f9f9;
+}
+
+.company-details-form {
+    max-width: 600px;
+    margin: 10px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.company-details-form .form-group {
+    margin-bottom: 15px;
+}
+
+.company-details-form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.company-details-form input[type="text"],
+.company-details-form input[type="email"],
+.company-details-form input[type="number"],
+.company-details-form textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.company-details-form input[type="submit"] {
+    background-color: #0073aa;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* COMPANY PAGE */
+.company-details-form input[type="submit"]:hover {
+    background-color: #005177;
+}
+
+.success-message {
+    padding: 10px;
+    margin-bottom: 15px;
+    color: green;
+    text-align: center;
+    /* border: 1px solid green;
+    background-color: #d4edda;
+    border-radius: 5px; */
+}
+
+.error-message {
+    padding: 10px;
+    margin-bottom: 15px;
+    color: red; 
+    text-align: center; /*
+    border: 1px solid red;
+    background-color: #f8d7da;
+    border-radius: 5px; */
+}
+
+/* ========== CSC TO MAKE BACKEND RESPONSIVE =========================*/
+#wpbody {
+    margin-right: 1.5em!important;
+}
+.eq-width {
+    font-size: 0.9em!important;
+    min-width: 90px;
+    margin: 1px!important;
+}
+.bk-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+.bk-responsive table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.bk-responsive th, .bk-responsive td {
+    padding: 0.5em;
+    text-align: left;
+}
+.form-controls {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.form-controls div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+@media (max-width: 768px) {
+    .bk-responsive th, .bk-responsive td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .bk-responsive th {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+    .bk-responsive td {
+        border: none;
+        position: relative;
+        padding-left: 0.5em; /* Adjust padding to align content to the left */
+        text-align: left; /* Align text to the left */
+    }
+    .bk-responsive td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 50%;
+        padding-left: 0.5em;
+        font-weight: bold;
+        text-align: left;
+    }
+    .bk-responsive thead {
+        display: none;
+    }
+    .form-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .form-controls div {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        width: 100%;
+    }
+    .form-controls button, .form-controls input {
+        align-self: stretch;
+        margin-bottom:3px;
+    }
+}

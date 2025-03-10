@@ -61,7 +61,7 @@ function bms_Add_My_Admin_Link()
 function bms_settings_page_callback()
 {
     echo "
-    <div style='max-width: 600px; margin: 10px auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;'>
+    <div class='settings-box'>
       <h1 style='text-align:center'>Business Management System</h1>
       <h2>To setup BMS, add the following [shortcodes] to your pages</h2>
       <div>
@@ -84,6 +84,9 @@ function bms_settings_page_callback()
       </div>
        <div>
         Stock page: <strong>[load_stock]</strong>
+      </div>
+       <div>
+        Tasks page: <strong>[load_tasks]</strong>
       </div>
     </div>
     ";

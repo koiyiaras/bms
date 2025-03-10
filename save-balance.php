@@ -3,39 +3,28 @@
 if (isset($_POST['add-in-transaction'])) {
     // Sanitize form data
     $record_id = intval($_POST['record_id']);
-    $rel_invoice = sanitize_text_field($_POST['rel_invoice']);
+    $rel_project_id = intval($_POST['rel_project_id']);
     $description = sanitize_text_field($_POST['description']);
     $payer_payee = sanitize_text_field($_POST['payer']);
     $amount = sanitize_text_field($_POST['amount']);
+    $pay_method = sanitize_text_field($_POST['payment_method']);
     $type_of_payment = sanitize_text_field($_POST['type_of_payment']);
     $payment_date = sanitize_text_field($_POST['payment_date']);
     $in_out = 1;
-
-    // Check if rel_invoice is not empty and get the corresponding ID
-    $rel_invoice_id = 0;
-    if (!empty($rel_invoice)) {
-        $invoice_table = $wpdb->prefix . 'bms_invoices';
-        $invoice = $wpdb->get_row($wpdb->prepare("SELECT id FROM $invoice_table WHERE invoice_no = %s", $rel_invoice));
-        if ($invoice) {
-            $rel_invoice_id = $invoice->id;
-        }
-        if ($invoice == null) {
-            $rel_invoice_id = $rel_invoice;
-        }
-    }
 
     // Insert or Update data into balances table
     $balances_table = $wpdb->prefix . 'bms_balances';
     $data = [
         'in_out' => $in_out,
         'description' => $description,
-        'rel_invoice' => $rel_invoice_id,
+        'rel_project' => $rel_project_id,
         'payer_payee' => $payer_payee,
         'amount' => $amount,
+        'pay_method' => $pay_method,
         'type_of_payment' => $type_of_payment,
         'payment_date' => $payment_date,
     ];
-    $format = ['%d', '%s', '%s', '%s', '%f', '%s', '%s'];
+    $format = ['%d', '%s', '%d', '%s', '%f', '%s', '%s', '%s'];
 
     if ($record_id > 0) {
         // Update existing record

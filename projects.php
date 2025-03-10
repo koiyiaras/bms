@@ -6,43 +6,16 @@ $clients = $wpdb->get_results("SELECT id, name FROM {$wpdb->prefix}bms_clients o
 $company = $wpdb->get_row("SELECT * FROM {$wpdb->prefix}bms_company LIMIT 1");
 
 $table_materials = $wpdb->prefix . 'bms_materials';
-$materials = $wpdb->get_results("SELECT id, type FROM $table_materials");
+$table_materials_other = $wpdb->prefix . 'bms_materials_other';
+$materials = $wpdb->get_results("SELECT * FROM $table_materials");
+$materials_other = $wpdb->get_results("SELECT * FROM $table_materials_other WHERE other_type='other' ");
 
-/** status completed */
-if (isset($_POST['complete_project'])) {
-    $project_id = $_GET['project_id'];
+$years_list = $wpdb->get_col("
+    SELECT DISTINCT YEAR(`creation_date`)
+    FROM {$wpdb->prefix}bms_projects
+    ORDER BY YEAR(`creation_date`) DESC
+");
 
-    // Update the project in the database
-    $wpdb->update(
-        $wpdb->prefix . 'bms_projects', // Table name
-        [ 'status' => 'COMPLETED' ], // Data to update
-        ['id' => $project_id]      // Where condition
-    );
-}
-/** save payment */
-if (isset($_POST['save_pr_payment'])) {
-    $project_id = $_GET['project_id'];
-    $result = $wpdb->insert(
-        $wpdb->prefix . 'bms_balances', // Table name
-        [
-            'in_out' => 1,
-            'rel_invoice' => 0,
-            'rel_project' => $project_id,
-            'description' => $_POST['payment_description'],
-            'payer_payee' => $_POST['client_name'],
-            'amount' => $_POST['payment_amount'],
-            'type_of_payment' => 'pr_inv',
-            'payment_date' => $_POST['payment_date']
-        ]
-    );
-
-    if ($result) {
-        echo '<div id="qu-added-success" class="alert alert-success" role="alert">Project added successfully.</div>';
-    } else {
-        $error_message = $wpdb->last_error;
-        echo '<div id="cl-added-error" class="alert alert-danger" role="alert">Error Saving project: ' . esc_html($error_message) . '</div>';
-    }
-}
 // Get project ID from URL if set
 $project_id = isset($_GET['project_id']) ? intval($_GET['project_id']) : null;
 
@@ -53,7 +26,7 @@ if ($project_id) {
     
     // Fetch the project with prepared query
     $project = $wpdb->get_row($wpdb->prepare("
-        SELECT q.*, c.name as client_name, c.id as client_id 
+        SELECT q.*, c.name as client_name, c.id as client_id, c.address as client_address 
         FROM $projects_table q 
         LEFT JOIN $clients_table c ON q.client_id = c.id 
         WHERE q.id = %d", 
@@ -72,9 +45,9 @@ if ($project_id) {
 
     // Get the results
     $stock_r = $wpdb->get_results($query_s);
-    //print_r($project);
     if ($project) {
         // Display the specific project details
+        $invoice_settings = !empty($project->pr_inv_incl) ? json_decode($project->pr_inv_incl, true) : [];
         ?>
         <div class="bms-container">
             <div id="project-more" class='project-detail'>
@@ -103,16 +76,119 @@ if ($project_id) {
                 } ?>
                     </div>
                 </div>
+                <!-----------------Costs section start------------------->
                 <div class="row p-2">
                     <div class="col-md-12">
-                        <!-- Example content, replace with actual data -->
                         <p>&nbsp;</p>
-                        <h3 style="border-bottom: 2px solid darkgray; display: inline-block;">MATERIALS</h3>
+                        <h3 style="border-bottom: 2px solid darkgray; display: inline-block;">COSTS</h3>
+                    </div>
+                </div> 
+                <div id="costs-outer" class="border p-2 rounded">
+                    <div class="row mb-3 text-end">
+                        <div class="col">
+                            <button class="btn btn-primary btn-sm" id="add-cost-btn">Add cost</button>
+                        </div>
+                    </div>
+                    <form id="costs-form" method="post" action="" >
+                    <div id="items-container1" class="items-container1 item-line bg-light p-2 d-none" style="padding-left:1em!important;padding-right:1em!important;">
+                    <?php 
+                        load_prices_block('cost', $materials, $materials_other);
+                    ?>
+                    </div>
+
+                    <?php
+                        load_prices_buttons('cost');
+                    ?>
+                    </form>
+
+                    <!-- SHOW COSTS-->
+                    <div class="pr_inv_container p-2">
+                        <?php
+                        // Fetch project items
+                        $cost_items = $wpdb->get_results(
+                            $wpdb->prepare(
+                                "SELECT * 
+                                FROM {$wpdb->prefix}bms_project_costs 
+                                WHERE project_id = %d",
+                                $project_id
+                            )
+                        );
+                        ?>
+                        <!-- Project costs Table -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="row mb-2 bg-dark text-white p-2">
+                                    <div class="col-md-1">#</div>
+                                    <div class="col-md-2">Description</div>
+                                    <div class="col-md-1">Length</div>
+                                    <div class="col-md-1">Width</div>
+                                    <div class="col-md-2">Area</div>
+                                    <div class="col-md-1">#</div>
+                                    <div class="col-md-2">Unit Price</div>
+                                    <div class="col-md-2">Price (€)</div>
+                                </div>
+
+                                <?php 
+                                    $cost_total = 0; //above if because totals are shown in all cases (even with out and cost added)
+                                    if (!empty($cost_items)): 
+                                ?>
+                                <?php foreach ($cost_items as $counter => $item): 
+                                    $counter++;
+                                ?>
+                                    <div class="row mb-2 p-2 border-bottom">
+                                        <div class="col-md-1"><?php echo $counter; ?></div>
+                                        <div class="col-md-2"><?php echo esc_html($item->type); ?></div>
+                                        <div class="col-md-1"><?php echo esc_html($item->mikos); ?></div>
+                                        <div class="col-md-1"><?php echo esc_html($item->platos); ?></div>
+                                        <div class="col-md-1"><?php echo esc_html($item->area); ?></div>
+                                        <div class="col-md-1"><?php echo esc_html($item->quantity); ?></div>
+                                        <div class="col-md-2"><?php echo esc_html(number_format($item->unit_price, 2)); ?></div>
+                                        <div class="col-md-2"><?php echo esc_html(number_format($item->price, 2)); ?></div>
+                                        <div class="col-md-1">
+                                            <form method="post" action="" style="display: inline;">
+                                                <input type="hidden" name="delete_cost_item_id" value="<?php echo esc_attr($item->id); ?>">
+                                                <button type="submit" name="delete_cost_item" class="btn btn-link p-0" onclick="return confirm('Are you sure you want to delete this item?')" title="Delete Item">
+                                                    <span class="dashicons dashicons-trash" style="font-size: 1.3rem; color: #666665; text-decoration-line: none; margin-top: -1px;"></span>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                <?php 
+                                    $cost_total += $item->price;
+                                endforeach; ?>
+
+                                <?php else: ?>
+                                    <div class="row p-2">
+                                        <div class="col-md-12">No costs found.</div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <!-- Project Totals -->
+                        <div class="row mt-4 light-yellow">
+                            <div class="col-md-10 border-bottom">
+                                <b>Total:</b>
+                            </div>
+                            <div class="col-md-2 border-bottom">
+                                <b><?php echo number_format($cost_total, 2); ?></b>
+                            </div>
+                        </div>
+                    </div>
+
+                </div><!--end of costs outer-->
+                
+
+                <!-----------------Invoice section start------------------->
+                <div class="row p-2">
+                    <div class="col-md-12">
+                        <p>&nbsp;</p>
+                        <h3 style="border-bottom: 2px solid darkgray; display: inline-block;">CREATE INVOICE</h3>
                     </div>
                 </div> 
                 <div id="materials-outer" class="border p-2 rounded">
                 <form id="materials-form" method="post" action="" onkeydown="return (event.key != 'Enter')" >
-                <div class="row">
+                <div class="row ps-2">
                         <div class="col-md-3">Type</div>
                         <div class="col-md-3">Area</div>
                         <div class="col-md-1">#</div>
@@ -120,90 +196,43 @@ if ($project_id) {
                         <div class="col-md-2">Line price</div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12"><!--inside this col put the lines-->
+                    <div class="col-md-12">
+                        <!--inside this col put the lines-->
                         <div id="items-container2" class="item-line bg-light p-2" style="padding-left:1em!important;padding-right:1em!important;">
-                                <?php foreach ($stock_r as $stock) :
+                            <?php 
+                            if (!empty($stock_r)) {
+                                foreach ($stock_r as $stock) :
                                     $this_area = $stock->out_mikos * $stock->out_platos;
-                                    ?>
-                                <div class="row mb-3 border-bottom pb-2">   
-                                    <div class="col-md-3"><span><?php echo esc_html($stock->type); ?></span></div>
-                                    <input type="hidden" name="mat_type[]" value="<?php echo esc_html($stock->type); ?>" />
-                                    <div class="col-md-3"><span><?php echo '<strong>' . esc_html($this_area) . '</strong> (' . esc_html($stock->out_mikos) . 'x' . esc_html($stock->out_platos) . ')'; ?></span></div>
-                                    <input type="hidden" name="new-item-length[]" value="<?php echo esc_html($stock->out_mikos); ?>" />
-                                    <input type="hidden" name="new-item-width[]" value="<?php echo esc_html($stock->out_platos); ?>" />
-                                    <div class="col-md-1">
-                                        <input type="text" name="pr_item-quantity[]" value="1" class="form-control item-quantity only-num" required="">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="text" name="pr_unit-price[]" value="0" class="form-control unit-price only-num" required="">
-                                    </div>
-                                    <div class="col-md-2">
-                                        <input type="text" name="pr_price[]" value="0" readonly="" class="form-control show-price" required="">
-                                    </div>
+                            ?>
+                            <div class="row mb-3 border-bottom pb-2">   
+                                <div class="col-md-3"><span><?php echo esc_html($stock->type); ?></span></div>
+                                <input type="hidden" name="mat_type[]" value="<?php echo esc_html($stock->type); ?>" />
+                                <div class="col-md-3"><span><?php echo '<strong>' . esc_html($this_area) . '</strong> (' . esc_html($stock->out_mikos) . 'x' . esc_html($stock->out_platos) . ')'; ?></span></div>
+                                <input type="hidden" name="new-item-length[]" value="<?php echo esc_html($stock->out_mikos); ?>" />
+                                <input type="hidden" name="new-item-width[]" value="<?php echo esc_html($stock->out_platos); ?>" />
+                                <div class="col-md-1">
+                                    <input type="text" name="pr_item-quantity[]" value="1" class="form-control item-quantity only-num" required="">
                                 </div>
-                                <?php endforeach; ?>
-                                <!--here add a new line hide it until the new line button is clicked make somehow different button to add next new lines with js-->
-                                <div id="items-container">
-                                    <div id="add-mat-template" class="row mb-3 d-none border-bottom pb-2">  
-                                    <input type="hidden" name="counter[]" value="dump" /> 
-                                        <div class="col-md-3">
-                                            <select name="mat_type2[]" class="form-select-sm">
-                                                <option value='0' selected>SELECT TYPE</option>
-                                                <?php foreach ($materials as $material): ?>
-                                                    <option value='<?php echo esc_attr($material->type); ?>'><?php echo esc_html($material->type); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 d-inline-flex">
-                                            <div>
-                                                <input type="text" name="new-item-length2[]" value="0" class="form-control only-num" required>
-                                            </div>
-                                            <div class="mx-2">x</div>
-                                            <div>
-                                                <input type="text" name="new-item-width2[]" value="0" class="form-control only-num" required>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <input type="text" name="pr_item-quantity2[]" value="1" class="form-control item-quantity only-num" required="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="text" name="pr_unit-price2[]" value="0" class="form-control unit-price only-num" required="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="text" name="pr_price2[]" value="0" readonly="" class="form-control show-price" required="">
-                                        </div>
-                                    </div><!--end of first material--> 
+                                <div class="col-md-2">
+                                    <input type="text" name="pr_unit-price[]" value="0" class="form-control unit-price only-num" required="">
                                 </div>
-
-                                <div id="other-items-container">
-                                    <div id="add-other-template" class="row mb-3 d-none border-bottom pb-2">   
-                                    <input type="hidden" name="counter[]" value="dump" />
-                                        <div class="col-md-6">
-                                            <input type="text" name="mat_type3[]" value="0" class="form-control" required>
-                                        </div>
-                                        <div class="col-md-1">
-                                            <input type="text" name="pr_item-quantity3[]" value="1" class="form-control item-quantity only-num" required="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="text" name="pr_unit-price3[]" value="0" class="form-control unit-price only-num" required="">
-                                        </div>
-                                        <div class="col-md-2">
-                                            <input type="text" name="pr_price3[]" value="0" readonly="" class="form-control show-price" required="">
-                                        </div>
-                                    </div><!--end of first other--> 
-                                </div><!--end of others container-->
-                            </div><!--end #items-container-row -->
+                                <div class="col-md-2">
+                                    <input type="text" name="pr_price[]" value="0" readonly="" class="form-control show-price" required="">
+                                </div>
+                            </div>
+                            <?php 
+                                endforeach; 
+                            }
+                            
+                            load_prices_block('inv', $materials, $materials_other);
+                            ?>
+                       
+                        </div><!--end #items-container2 -row -->
                     </div><!--end col -->
                 </div><!--end row -->
-                <div class="row mt-2"> 
-                    <div class="col-md-6">
-                        <button type="button" id="add-mat-line" class="btn btn-sm btn-secondary">Add material</button>
-                        <button type="button" id="add-other-line" class="btn btn-sm btn-secondary">Add other</button>
-                    </div>   
-                    <div class="col-md-5 text-end">
-                        <button type="button" id="calc-pr-prices" class="btn btn-sm btn-dark px-3">Next</button>
-                    </div>  
-                </div>
+                <?php
+                    load_prices_buttons('inv');
+                ?>
                 <!--====================================NEXT STEP CALCULATIONS=====================================-->
                 <div id="calculations" class="d-none">
                 <div class="row gx-0 mt-3">
@@ -219,7 +248,17 @@ if ($project_id) {
                     <div class="col-md-3">
                         <label for="vat" class="form-label">VAT (%)</label>
                         <div class="input-group input-group-sm mb-3">
-                            <input type="number" name="vat" id="pr-vat" class="form-control" min="0" max="100" value="0" required />
+                        <?php //get vat value from this project if not existing suggest default
+                            $thisVat = floatval($wpdb->get_var($wpdb->prepare("SELECT vat from {$wpdb->prefix}bms_projects WHERE id=%d", $project_id)));
+                            //get default value from vat from db
+                            if ($thisVat == NULL){
+                                $dVat = $wpdb->get_var($wpdb->prepare("SELECT vat_prefered from {$wpdb->prefix}bms_company WHERE id=%d", 1));
+                                $dvat = floatval($dVat);
+                                echo '<input type="number" name="vat" id="pr-vat" class="form-control" min="0" max="100" value="'. $dvat .'" required />';
+                            }else{
+                                echo '<input type="number" name="vat" id="pr-vat" class="form-control" min="0" max="100" value="'. $thisVat .'" required readonly />';
+                            }
+                        ?>
                             <span class="input-group-text"> %</span>
                         </div>
                     </div><!--end vat val-->
@@ -241,7 +280,7 @@ if ($project_id) {
                 <div class="row gx-0 mb-3">
                     <hr class="mt-1">
                     <div class="col-9">
-                        <b>Total</b> (incl. VAT):
+                        <b>Total</b> (incl. VAT): <span id="disc_note"></span>
                     </div>
                     <div id="" class="col-2 ">
                         <input type="text" name="pr_total2" value=0 readonly="" id="pr_total2" class="form-control light-yellow" required="">
@@ -250,32 +289,23 @@ if ($project_id) {
                 </div><!--end row -->
                 <div class="row mb-3">
                     <div class="col">
-                    <button type="button" id="add-discount" class="btn btn-sm btn-light">Add Discount</button>
+                    <button type="button" id="add-discount-pr" class="btn btn-sm btn-light">Add discount</button>
                     </div>
                 </div>
                 <div id="discount-cont">
-                    <div class="row mb-3">
-                        <div class="col-md-7">
+                    <div class="row gx-0 mb-3">
+                        <div class="col-md-9 pe-3">
                             <label for="discount_type" class="form-label">Disc. description</label>
                             <input type="text" name="discount_descr" id="" class="form-control discount_descr" value = "" />
                         </div>
-                        <div class="col-md-3">
-                            <label for="discount_val" class="form-label">Discount</label>
-                            <input type="text" name="discount_val" id="discount_val" class="form-control only-num" value="" />
+                        <div class="col-md-2">
+                            <label for="discount_val_pr" class="form-label">Discount</label>
+                            <input type="text" name="discount_val_pr" id="discount_val_pr" class="form-control only-num" value="" />
                         </div>
                         <div class="col-2">
                         </div>
                     </div>
-                    <div class="row mb-3">
-                    <hr>
-                        <div class="col-9">
-                            <b>Total</b> (after discount):
-                        </div>
-                        <div id="" class="col-2">
-                            <input type="text" name="pr_total3" value="..." readonly="" id="pr_total3" class="form-control light-yellow" required="">
-                        </div>
-                    <hr>
-                    </div>
+                    <hr class="mt-1">
                 </div><!--end of discount container-->
             
                 <!--====================================END  CALCULATIONS=====================================-->
@@ -289,10 +319,20 @@ if ($project_id) {
                 </div><!--end materials outer -->
 
                 
-                <div class="row p-2">
-                    <div class="col-md-12">
+                <div class="row p-2 align-items-end">
+                    <div class="col-md-8">
                         <p>&nbsp;</p>
-                        <h3 style="border-bottom: 2px solid darkgray; display: inline-block;">INVOICE</h3>
+                        <h3 id="invoice" style="border-bottom: 2px solid darkgray; display: inline-block;">INVOICE</h3>
+                    </div>
+                    <div class="col-md-4 text-end project-inv-icons">
+                         <!-- Settings Icon -->
+                         <a href="#" title="Setup Invoice" class="setup-proj-invoice">
+                            <span class="dashicons dashicons-editor-insertmore" style="font-size: 1.5rem;"></span>
+                        </a>
+                        <!-- Print Icon -->
+                        <a href="#" title="Print Invoice" class="create-proj-invoice" data-project-id="<?php echo $project_id; ?>">
+                            <span class="dashicons dashicons-printer" style="font-size: 1.5rem;"></span>
+                        </a>
                     </div>
                 </div>
                 <div id="invoice-outer" class="border p-2 rounded">
@@ -307,15 +347,15 @@ if ($project_id) {
                         )
                     );
 
-                // Fetch project totals
-                $project_totals = $wpdb->get_row(
-                    $wpdb->prepare(
-                        "SELECT * 
-                                FROM {$wpdb->prefix}bms_projects 
-                                WHERE id = %d",
-                        $project_id
-                    )
-                );
+                    // Fetch project totals
+                    $project_totals = $wpdb->get_row(
+                        $wpdb->prepare(
+                            "SELECT * 
+                                    FROM {$wpdb->prefix}bms_projects 
+                                    WHERE id = %d",
+                            $project_id
+                        )
+                    );
                 ?>
 
                     <div class="pr_inv_container p-2">
@@ -323,25 +363,38 @@ if ($project_id) {
                         <div class="row mt-4">
                             <div class="col-md-12">
                                 <div class="row mb-2 bg-dark text-white p-2">
+                                    <div class="col-md-1">#</div>
                                     <div class="col-md-2">Type</div>
                                     <div class="col-md-1">Length</div>
                                     <div class="col-md-1">Width</div>
-                                    <div class="col-md-2">Area</div>
+                                    <div class="col-md-1">Area</div>
                                     <div class="col-md-1">#</div>
                                     <div class="col-md-2">Unit Price</div>
-                                    <div class="col-md-3">Price (€)</div>
+                                    <div class="col-md-2">Price (€)</div>
+                                    <div class="col-md-1"></div>
                                 </div>
 
                                 <?php if (!empty($project_items)): ?>
-                                    <?php foreach ($project_items as $item): ?>
+                                    <?php foreach ($project_items as $counter => $item): 
+                                        $counter++;
+                                    ?>
                                         <div class="row mb-2 p-2 border-bottom">
+                                            <div class="col-md-1"><?php echo $counter; ?></div>
                                             <div class="col-md-2"><?php echo esc_html($item->type); ?></div>
                                             <div class="col-md-1"><?php echo esc_html($item->mikos); ?></div>
                                             <div class="col-md-1"><?php echo esc_html($item->platos); ?></div>
-                                            <div class="col-md-2"><?php echo esc_html($item->area); ?></div>
+                                            <div class="col-md-1"><?php echo esc_html($item->area); ?></div>
                                             <div class="col-md-1"><?php echo esc_html($item->quantity); ?></div>
                                             <div class="col-md-2"><?php echo esc_html(number_format($item->unit_price, 2)); ?></div>
-                                            <div class="col-md-3"><?php echo esc_html(number_format($item->price, 2)); ?></div>
+                                            <div class="col-md-2"><?php echo esc_html(number_format($item->price, 2)); ?></div>
+                                            <div class="col-md-1">
+                                                <form method="post" action="" style="display: inline;">
+                                                    <input type="hidden" name="delete_item_id" value="<?php echo esc_attr($item->id); ?>">
+                                                    <button type="submit" name="delete_item" class="btn btn-link p-0" onclick="return confirm('Are you sure you want to delete this item?')" title="Delete Item">
+                                                        <span class="dashicons dashicons-trash" style="font-size: 1.3rem; color: #666665;text-decoration-line: none;margin-top:-1px;"></span>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -355,27 +408,32 @@ if ($project_id) {
                         <!-- Project Totals -->
                         <?php if ($project_totals): ?>
                             <div class="row mt-4 light-yellow">
-                                <div class="col-md-9 border-bottom">
+                                <div class="col-md-10 border-bottom">
                                     <b>Total before VAT:</b>
                                 </div>
-                                <div class="col-md-3 border-bottom">
+                                <div class="col-md-2 border-bottom">
                                     <b><?php echo number_format($project_totals->total_before_vat, 2); ?></b>
                                 </div>
 
-                                <div class="col-md-9 border-bottom">
+                                <div class="col-md-10 border-bottom">
                                     <b>VAT (<?php echo esc_html($project_totals->vat); ?>%):</b>
                                 </div>
-                                <div class="col-md-3 border-bottom">
+                                <div class="col-md-2 border-bottom">
                                     <b><?php echo number_format($project_totals->vat_price, 2); ?></b>
                                 </div>
 
-                                <div class="col-md-9 border-bottom">
-                                    <b>Total after VAT:</b>
+                                <div class="col-md-10 border-bottom">
+                                    <b>Total after VAT: </b>
+                                    <?php
+                                    if (!empty($project_totals->discount_val) && $project_totals->discount_val > 0){
+                                        echo "(€".number_format($project_totals->discount_val, 2)." discount applied)"; 
+                                    }
+                                    ?>
                                 </div>
-                                <div class="col-md-3 border-bottom">
+                                <div class="col-md-2 border-bottom">
                                     <b><?php echo number_format($project_totals->total_after_vat, 2); ?></b>
                                 </div>
-
+                                <!-- new aproach for disc 
                                 <?php if (!empty($project_totals->discount_description)): ?>
                                     <div class="col-md-9 border-bottom">
                                         <b>Discount: </b><?php echo esc_html($project_totals->discount_description); ?>
@@ -390,7 +448,7 @@ if ($project_id) {
                                     <div class="col-md-3 border-bottom">
                                         <b><?php echo number_format($project_totals->total_after_discount, 2); ?></b>
                                     </div>
-                                <?php endif; ?>
+                                <?php endif; ?> -->
                             </div>
                         <?php endif; ?>
                     </div>
@@ -400,7 +458,7 @@ if ($project_id) {
                 <div class="row p-2">
                     <div class="col-md-12">
                         <p>&nbsp;</p>
-                        <h3 style="border-bottom: 2px solid darkgray; display: inline-block;">PAYMENTS</h3>
+                        <h3 id="payments" style="border-bottom: 2px solid darkgray; display: inline-block;">PAYMENTS</h3>
                     </div>
                 </div>
 
@@ -411,7 +469,7 @@ if ($project_id) {
                     $project_total = $project_total_query->total_after_discount;
 
                     // Fetch payments for the project
-                    $payments = $wpdb->get_results($wpdb->prepare("SELECT description, payment_date, amount FROM {$wpdb->prefix}bms_balances WHERE rel_project = %d", $project_id));
+                    $payments = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}bms_balances WHERE rel_project = %d", $project_id));
 
                     // Calculate the total paid amount
                     $total_paid = 0;
@@ -433,9 +491,9 @@ if ($project_id) {
                     <!-- Add Payment form (initially hidden) -->
                     <div class="row mb-4 m-0 d-none border" id="add-payment-form">
                         <div class="col-md-12">
-                            <form method="post" action="">
+                            <form method="post" action="#payments">
                                 <div class="row m-0">
-                                    <div class="col-md-5 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label for="payment-description" class="form-label">Payment Description</label>
                                         <input type="text" class="form-control" id="payment-description" name="payment_description" required>
                                     </div>
@@ -443,13 +501,22 @@ if ($project_id) {
                                         <label for="payment-amount" class="form-label">Amount</label>
                                         <input type="text" class="form-control only-num" id="payment-amount" name="payment_amount" required>
                                     </div>
+                                    <div class="col-md-2 mb-3">
+                                        <label for="pay-method" class="form-label">Pay method</label>
+                                        <select id="pay-method" name="payment_method" class="form-select">
+                                            <option value='Cash' selected>Cash</option>
+                                            <option value='Check' >Check</option>
+                                            <option value='Transfer' >Transfer</option>
+                                            <option value='Other' >Other</option>
+                                        </select>
+                                    </div>
                                     <div class="col-md-3 mb-3">
                                         <label for="payment-date" class="form-label">Date</label>
                                         <input type="date" class="form-control form-control-sm" id="payment-date" name="payment_date" required>
                                     </div>
-                                    <div class="col-md-2 mb-3 align-self-end">
+                                    <div class="col-md-1 mb-3 align-self-end">
                                         <input type="hidden" name="client_name" value="<?php echo esc_attr($project->client_name); ?>" />
-                                        <button type="submit" name="save_pr_payment" class="btn btn-sm btn-success">SAVE</button>
+                                        <button type="submit" name="save_pr_payment" class="btn btn-sm btn-success mb-1">SAVE</button>
                                     </div>
                                 </div>
                             </form>
@@ -460,7 +527,8 @@ if ($project_id) {
                     <div class="row">
                         <div class="col-md-12">
                             <div class="row m-0 mb-2 fw-bold bg-dark text-white">
-                                <div class="col-md-5">Payment Description</div>
+                                <div class="col-md-4">Payment Description</div>
+                                <div class="col-md-2">Method</div>
                                 <div class="col-md-3">Date</div>
                                 <div class="col-md-2">Amount (€)</div>
                             </div>
@@ -468,7 +536,8 @@ if ($project_id) {
                             <?php if ($payments) : ?>
                                 <?php foreach ($payments as $payment) : ?>
                                     <div class="row m-0 mb-2 border-bottom">
-                                        <div class="col-md-5"><?php echo esc_html($payment->description); ?></div>
+                                        <div class="col-md-4"><?php echo esc_html($payment->description); ?></div>
+                                        <div class="col-md-2"><?php echo esc_html($payment->pay_method); ?></div>
                                         <div class="col-md-3">
                                             <?php echo esc_html(date_i18n('d-m-Y', strtotime(get_date_from_gmt($payment->payment_date)))); ?>
                                         </div>
@@ -488,7 +557,7 @@ if ($project_id) {
                             </div>
                             <div class="row m-0" style="background-color: #fff5f5;">
                                 <div class="col-md-9 fw-bold">Remaining Amount:</div>
-                                <div class="col-md-3 text-danger"><?php echo number_format($remaining_amount, 2); ?></div>
+                                <div id="project-remaining" class="col-md-3 text-danger"><?php echo number_format($remaining_amount, 2); ?></div>
                                 <?php //badge coding
                         ?>
                             </div>
@@ -510,11 +579,86 @@ if ($project_id) {
                     </div>
                 </div>
         </div><!--end of bms-container -->  
+        <!-- Project invoice settings modal-->
+        <div class="modal fade" id="invoiceSettingsModal" tabindex="-1" aria-labelledby="invoiceSettingsLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Project Invoice Settings</h3>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="post">
+                            <input type="hidden" name="project_id" value="<?php echo $project->id; ?>">
+
+                            <!-- Row 1: Date -->
+                            <div class="mb-3">
+                            <input type="checkbox" name="settings[date][set]" value="set" <?php echo get_checked($invoice_settings, 'date'); ?>> Include
+                            <label class="form-label">Date</label>
+                                <input type="date" name="settings[date][value]" class="form-control" value="<?php echo get_value($invoice_settings, 'date', $project->creation_date); ?>">
+                            </div>
+
+                            <!-- Row 2: Our Address -->
+                            <div class="mb-3">
+                                <input type="checkbox" name="settings[our_address][set]" value="set" <?php echo get_checked($invoice_settings, 'our_address'); ?>> Include
+                                <label class="form-label">Our Address</label>
+                                <?php 
+                                    // Ensure the content is not escaped before passing it to wp_editor
+                                    $our_address = get_value($invoice_settings, 'our_address', $company->address);
+                                    // Customize the editor settings to remove the media button
+                                    $editor_settings = [
+                                        'textarea_name' => 'settings[our_address][value]',
+                                        'media_buttons' => false, // This removes the media button
+                                    ];
+
+                                    wp_editor($our_address, 'our_address_editor', $editor_settings);
+                                ?>
+                            </div>
+
+                            <!-- Row 3: Client Address -->
+                            <div class="mb-3">
+                                <input type="checkbox" name="settings[client_address][set]" value="set" <?php echo get_checked($invoice_settings, 'client_address'); ?>> Include
+                                <label class="form-label">Client Address</label>
+                                <?php wp_editor(get_value($invoice_settings, 'client_address', $project->client_address), 'client_address_editor', ['textarea_name' => 'settings[client_address][value]']); ?>
+                            </div>
+
+                            <!-- Row 4: Thanks Message -->
+                            <div class="mb-3">
+                                <input type="checkbox" name="settings[thanks_message][set]" value="set" <?php echo get_checked($invoice_settings, 'thanks_message'); ?>> Include
+                                <label class="form-label">Thanks Message</label>
+                                <input type="text" name="settings[thanks_message][value]" class="form-control" value="<?php echo get_value($invoice_settings, 'thanks_message', $company->thanks_msg); ?>">
+                                <label>Message position:</label>
+                                <select name="settings[thanks_message][position]" class="form-select">
+                                    <option value="left" <?php echo get_position($invoice_settings, 'thanks_message') == 'left' ? 'selected' : ''; ?>>Left</option>
+                                    <option value="center" <?php echo get_position($invoice_settings, 'thanks_message') == 'center' ? 'selected' : ''; ?>>Center</option>
+                                    <option value="right" <?php echo get_position($invoice_settings, 'thanks_message') == 'right' ? 'selected' : ''; ?>>Right</option>
+                                </select>
+                            </div>
+
+                            <!-- Row 5: Bank Details -->
+                            <div class="mb-3">
+                                <input type="checkbox" name="settings[bank_details][set]" value="set" <?php echo get_checked($invoice_settings, 'bank_details'); ?>> Include
+                                <label class="form-label">Bank Details</label>
+                                <?php wp_editor(get_value($invoice_settings, 'bank_details', $company->bank_details), 'bank_details_editor', ['textarea_name' => 'settings[bank_details][value]']); ?>
+                                <label>Bank details position:</label>
+                                <select name="settings[bank_details][position]" class="form-select">
+                                    <option value="left" <?php echo get_position($invoice_settings, 'bank_details', 'left') == 'left' ? 'selected' : ''; ?>>Left</option>
+                                    <option value="center" <?php echo get_position($invoice_settings, 'bank_details', 'left') == 'center' ? 'selected' : ''; ?>>Center</option>
+                                    <option value="right" <?php echo get_position($invoice_settings, 'bank_details', 'left') == 'right' ? 'selected' : ''; ?>>Right</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" name="save_invoice_settings" class="btn btn-primary">Save Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End of project invoice settings modal -->
         <?php
                 return; // Stop here if viewing a specific project
         } else {
             echo "<div class='alert alert-warning'>Project not found!</div>";
-        }
+        }    
     }
 
     // Show the list of projects if no specific project is being viewed
@@ -578,14 +722,53 @@ if ($project_id) {
             /** ============  show projects ======================================================== */
             $projects_table = $wpdb->prefix . 'bms_projects';
             $clients_table = $wpdb->prefix . 'bms_clients';
-            $projects = $wpdb->get_results("SELECT q.*, c.name as client_name, c.id as client_id FROM $projects_table q LEFT JOIN $clients_table c ON q.client_id = c.id ORDER BY q.id DESC");
+            $status_value = isset($_GET['status']) ? sanitize_text_field($_GET['status']) : 'all';
+            $filter_query = " WHERE 1=1";
+            // Filter the data list based on the selected status
+            if ($status_value !== 'all') {
+                $filter_query = " WHERE q.status = '$status_value' ";
+            }
+
+            //filter years
+            $view_range = view_range();
+            if($view_range != 'all'){
+                // Apply date filter if current term is selected
+                $filter_query .= years_query($view_range, 'q.creation_date');
+            }
+
+            $projects = $wpdb->get_results(
+                "SELECT q.*, c.name as client_name, c.id as client_id 
+                FROM $projects_table q 
+                LEFT JOIN $clients_table c 
+                ON q.client_id = c.id 
+                $filter_query 
+                ORDER BY q.id DESC");
             ?>
 
             <!-- Project List -->
             <div id="list-projects">
                 <div class="row gx-0 my-3">
-                    <div class="col-md-6 d-flex align-items-center p-md-0">
-                        <input type="text" id="project-search" class="form-control" placeholder="Search..." style="font-size:0.9em;">
+                    <div class="col-md-3 p-md-0">
+                        <!-- Form with Select -->
+                        <form method="get" id="status-filter-form">
+                            <select id="filter-status" name="status" class="form-select" style="font-size:0.9em;">
+                                <option value="all" <?php selected($status_value, 'all'); ?>>Status: All</option>
+                                <?php
+                                // Query to get distinct statuses
+                                $statuses = $wpdb->get_results("SELECT DISTINCT status FROM $projects_table");
+
+                                // Generate options
+                                if ($statuses) {
+                                    foreach ($statuses as $status) {
+                                        echo '<option value="' . esc_attr($status->status) . '"' . selected($status_value, $status->status, false) . '>' . esc_html($status->status) . '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
+                        </form>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center p-md-0">
+                        <input type="text" id="project-search" class="form-control ms-0 ms-md-2" placeholder="Search..." style="font-size:0.9em;">
                     </div>
                     <div class="col-md-6 text-end">
                         <div class="d-grid gap-2 d-md-block">
@@ -595,7 +778,11 @@ if ($project_id) {
                         </div>
                     </div>
                 </div>
-
+                <div class="m-1" style="font-size:0.9em;">
+                <?php
+                    echo years_links($years_list, $view_range, '/projects/');
+                ?>
+                </div>
                 <div id="data-list">
                     <?php foreach ($projects as $project) :
                         //load material/stock
@@ -636,21 +823,31 @@ if ($project_id) {
                                 <?php echo wp_kses_post($status); ?>
                             </div>
                             <div class="col-md-1 align-content-center text-center">
-                                <a href="#" style="color:unset;" id="editDescriptionLink" data-initial="<?php echo esc_attr($project->description); ?>" data-project-id="<?php echo esc_attr($project->id); ?>">
+                                <a href="#" style="color:unset;" 
+                                    class="editDescriptionLink" 
+                                    data-descr="<?php echo esc_attr($project->description); ?>" 
+                                    data-project-id="<?php echo esc_attr($project->id); ?>"
+                                    data-status="<?php echo esc_attr($project->status); ?>"
+                                    >
                                     <span class="dashicons dashicons-edit"></span>
                                 </a>
-                                <form method="post" id="delProjectForm" action="" style="display:inline;">
-                                <a href="#" id="delProjectLink" style="color:unset;">
-                                    <span class="dashicons dashicons-trash delete-icon-project"></span>
-                                    <input type="hidden" name="delete-project-submit" id="del_project" value="<?php echo esc_attr($project->id); ?>" />
-                                </a>
+                                <form method="post" action="" style="display:inline;">
+                                    <button 
+                                        type="submit" 
+                                        class="delete-project-btn" 
+                                        style="background:none; border:none; padding:0; cursor:pointer; color:unset;"
+                                        onclick="return confirm('Are you sure you want to delete this project?')"
+                                    >
+                                        <span class="dashicons dashicons-trash delete-icon-project"></span>
+                                    </button>
+                                    <input type="hidden" name="delete-project-submit" value="<?php echo esc_attr($project->id); ?>" />
                                 </form>
+
                             </div>
                             <div class="col-md-1 align-content-center text-end p-2">
                                 <a href="\projects\?project_id=<?php echo esc_html($project->id); ?>" class="btn btn-sm btn-light">
                                     <span class="dashicons dashicons-arrow-right-alt2"></span>
                                 </a>
-                                <!--span class="toggle-icon dashicons dashicons-arrow-down-alt2" style="cursor: pointer;"></span-->
                             </div>
                             </div><!--end row-->
                         </div><!--end project row-->
@@ -663,14 +860,19 @@ if ($project_id) {
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" id="editDescriptionModalLabel">Edit Project Description</h5>
+                        <h5 class="modal-title" id="editDescriptionModalLabel">Edit Project</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <form method="POST" action="" id="editDescriptionForm">
                         <div class="mb-3">
-                            <label for="description" class="form-label">Project Description</label>
-                            <input type="text" class="form-control" id="mod_description" name="mod_description" value="<?php echo esc_attr($project->description); ?>">
+                            <label for="description" class="form-label">Project description</label>
+                            <input type="text" class="form-control" id="mod_description" name="mod_description">
+                        </div>
+                        <div class="mb-3">
+                            <label for="mod_status" class="form-label">Project status</label>
+                            <select id="mod_status" name="mod_status" class="form-select form-select-sm">
+                            </select>
                         </div>
                         <input type="hidden" name="mod_project_id" id="mod_project_id" value="" />
                         </form>
@@ -682,4 +884,6 @@ if ($project_id) {
                 </div>
             </div>
         </div> 
-    <?php } ?>
+    <?php 
+    } 
+

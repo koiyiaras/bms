@@ -1,23 +1,19 @@
 <?php
-wp_get_current_user();
-$userId = $current_user->ID;
-
-/* what
- * is on the
- * backend
-*/
+/* Handle form submission */
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit'])) {
     $table = $wpdb->prefix . 'bms_company';
     $data = [
         'company_name' => sanitize_text_field($_POST['company_name']),
         'registration' => sanitize_text_field($_POST['registration']),
         'vat_number' => sanitize_text_field($_POST['vat_number']),
-        'address' => wp_kses_post($_POST['address']),
+        'address' => wp_kses_post($_POST['address']), // Preserve HTML tags
         'phone1' => sanitize_text_field($_POST['phone1']),
         'phone2' => sanitize_text_field($_POST['phone2']),
         'fax' => sanitize_text_field($_POST['fax']),
         'email' => sanitize_email($_POST['email']),
         'vat_prefered' => intval($_POST['vat_prefered']),
+        'bank_details' => wp_kses_post($_POST['bank_details']), // New field
+        'thanks_msg' => sanitize_text_field($_POST['thanks_msg']), // New field
     ];
 
     $existing_row = $wpdb->get_row("SELECT * FROM $table WHERE id = 1");
@@ -84,7 +80,33 @@ $details = $wpdb->get_row('SELECT * FROM '.$wpdb->prefix.'bms_company WHERE id=1
 
       <div class="form-group">
           <label for="address">Address</label>
-          <?php wp_editor($details->address, 'address'); ?>
+          <?php
+          wp_editor($details->address, 'address', [
+              'textarea_name' => 'address',
+              'media_buttons' => false, // Disable media buttons
+              'tinymce' => true, // Enable TinyMCE
+              'quicktags' => true, // Enable quicktags
+              'wpautop' => false, // allow <p> and <br> tags
+          ]);
+          ?>
+      </div>
+
+      <div class="form-group">
+          <label for="bank-details">Bank Details</label>
+          <?php
+          wp_editor($details->bank_details, 'bank_details', [
+              'textarea_name' => 'bank_details',
+              'media_buttons' => false, // Disable media buttons
+              'tinymce' => true, // Enable TinyMCE
+              'quicktags' => true, // Enable quicktags
+              'wpautop' => false, // allow <p> and <br> tags
+          ]);
+          ?>
+      </div>
+
+      <div class="form-group">
+          <label for="thanks-msg">Thanks Message</label>
+          <input type="text" name="thanks_msg" id="thanks-msg" value="<?php echo esc_attr($details->thanks_msg); ?>">
       </div>
 
       <div class="form-group">
@@ -92,70 +114,3 @@ $details = $wpdb->get_row('SELECT * FROM '.$wpdb->prefix.'bms_company WHERE id=1
       </div>
   </form>
 </div>
-
-
-<style>
-.company-details-form {
-    max-width: 600px;
-    margin: 10px auto;
-    padding: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    background-color: #f9f9f9;
-}
-
-.company-details-form .form-group {
-    margin-bottom: 15px;
-}
-
-.company-details-form label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.company-details-form input[type="text"],
-.company-details-form input[type="email"],
-.company-details-form input[type="number"],
-.company-details-form textarea {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-
-.company-details-form input[type="submit"] {
-    background-color: #0073aa;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.company-details-form input[type="submit"]:hover {
-    background-color: #005177;
-}
-
-.success-message {
-    padding: 10px;
-    margin-bottom: 15px;
-    color: green;
-    text-align: center;
-    /* border: 1px solid green;
-    background-color: #d4edda;
-    border-radius: 5px; */
-}
-
-.error-message {
-    padding: 10px;
-    margin-bottom: 15px;
-    color: red; 
-    text-align: center; /*
-    border: 1px solid red;
-    background-color: #f8d7da;
-    border-radius: 5px; */
-}
-</style>

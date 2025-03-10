@@ -3,11 +3,9 @@ jQuery(document).ready(function($) {
     if ($('#client_select').length > 0) {
         // Initialize Select2
         $('#client_select').select2({
-            placeholder: 'Αναζήτηση', // Set the placeholder
+            placeholder: 'Search', // Set the placeholder
             allowClear: true,
             width: '100%', // Adjust as needed
         });
-    } else {
-        console.log('Select2: #client_select not found');
     }
 });

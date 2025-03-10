@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_client_id'])) 
     $related_quotes = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}bms_quotes WHERE client_id = %d", $client_id));
     $related_invoices = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}bms_invoices WHERE client_id = %d", $client_id));
     $related_projects = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}bms_projects WHERE client_id = %d", $client_id));
-
+    
     if ($related_quotes > 0 || $related_invoices > 0 || $related_projects > 0) {
         echo '<div id="cl-delete-error" class="alert alert-danger" role="alert">This client has connected quotes/invoices and cannot be deleted. Delete or modify all connected invoices/quotes/projects first.</div>';
     } else {

@@ -14,7 +14,7 @@ function load_quote_data()
     ob_start();
 
     // Check permissions
-    if (!current_user_can('edit_posts')) {
+    if (!is_user_logged_in()) {
         wp_send_json_error('Permission denied');
         wp_die();
     }
@@ -45,275 +45,9 @@ function load_quote_data()
 add_action('wp_ajax_load_quote_data', 'load_quote_data');
 add_action('wp_ajax_nopriv_load_quote_data', 'load_quote_data');
 
-function load_tcpdf()
-{
-    if (!class_exists('TCPDF')) {
-        require_once(plugin_dir_path(__FILE__) . 'libraries/tcpdf/tcpdf.php');
-    }
-}
-
-/** create PDF Quote - Ajax call*/
-function generate_quote_pdf()
-{
-    global $wpdb;
-
-    // Start output buffering
-    ob_start();
-
-    $quote_id = intval($_POST['quote_id']);
-    $quotes_table = $wpdb->prefix . 'bms_quotes';
-    $quote = $wpdb->get_row($wpdb->prepare("SELECT * FROM $quotes_table WHERE id = %d", $quote_id));
-    if ($quote) {
-        $pdf_url = create_pdf_from_quote($quote);
-        wp_send_json_success(['pdf_url' => $pdf_url]);
-    } else {
-        wp_send_json_error('Quote not found');
-    }
-
-    // Output buffering ends
-    ob_end_clean();
-}
-add_action('wp_ajax_generate_quote_pdf', 'generate_quote_pdf');
-add_action('wp_ajax_nopriv_generate_quote_pdf', 'generate_quote_pdf');
-
-function create_pdf_from_quote($quote)
-{
-    global $wpdb;
-    $clients_table = $wpdb->prefix . 'bms_clients';
-    $items_table = $wpdb->prefix . 'bms_quote_items';
-    $company_table = $wpdb->prefix . 'bms_company';
-
-    // Get client details
-    $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $quote->client_id));
-    // Get company details
-    $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
-    // Get quote items
-    $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $items_table WHERE quote_id = %d", $quote->id));
-
-    $englishText = [
-        'date' => 'Date',
-        'valid_until' => 'Valid until',
-        'pelatis' => 'Client',
-        'perigrafi' => 'Description',
-        'monadas' => 'Unit price',
-        'posotita' => 'Quantity',
-        'timi' => 'Price',
-        'synolo_prin' => '<b>Total</b> before VAT',
-        'delivery_time' => 'Delivery time',
-        'fpa' => 'VAT',
-        'syn' => 'plus VAT',
-        'symp' => 'VAT incl.',
-        'synolo_meta1' => 'Total after VAT',
-        'ekptosi' => 'Discount',
-        'synolo_meta2' => 'Total after discount',
-        'ektimomenos' => 'Expected delivery time',
-        'efxarist' => 'Thanks for doing business with us'
-    ];
-
-    $greekText = [
-        'date' => 'Ημερομηνία',
-        'valid_until' => 'Ισχύει μέχρι',
-        'pelatis' => 'Πελάτης',
-        'perigrafi' => 'Περιγραφή',
-        'monadas' => 'Τιμή μονάδας',
-        'posotita' => 'Ποσότητα',
-        'timi' => 'Τιμή',
-        'synolo_prin' => '<b>Σύνολο</b> πριν το ΦΠΑ',
-        'fpa' => 'Φ.Π.Α.',
-        'syn' => 'συν ΦΠΑ',
-        'symp' => 'ΦΠΑ συμπεριλ.',
-        'synolo_meta1' => 'Σύνολο (μετά το ΦΠΑ)',
-        'ekptosi' => 'Εκπτωση',
-        'synolo_meta2' => 'Σύνολο (μετά την εκπτωση)',
-        'ektimomenos' => 'Εκτιμώμενος χρόνος ολοκλήρωσης',
-        'efxarist' => 'Ευχαριστούμε για τη συνεργασία'
-    ];
-
-    $textVals = $quote->lang == 'en' ? $englishText : $greekText;
-
-
-    // Load TCPDF only when generating a PDF
-    load_tcpdf();
-
-    // Create new PDF document
-    $pdf = new TCPDF();
-
-    // Set document information
-    $pdf->SetCreator(PDF_CREATOR);
-    $pdf->SetAuthor($company->company_name);
-    $pdf->SetTitle('Quote #' . $quote->quote_no);
-    $pdf->SetSubject('Quote');
-
-    // Set default monospaced font
-    $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
-
-    // Set margins
-    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
-    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
-    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
-
-    // Set auto page breaks
-    $pdf->SetAutoPageBreak(true, PDF_MARGIN_BOTTOM);
-
-    // Set image scale factor
-    $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
-
-    // Set font
-    $pdf->SetFont('dejavusans', '', 10);
-
-    // Add a page
-    $pdf->AddPage();
-
-    // Set content
-    $tbl = <<<EOD
-    <table cellspacing="0" cellpadding="1">
-        <tr>
-            <td>
-                <p>{$company->company_name}</p>
-                <p>{$company->address}</p>
-                <p>{$company->phone1}<br>{$company->email}<br></p>
-            </td><!--end of left top-->
-            <td>
-                    <span style='text-align:right;'># <b>{$quote->quote_no}</b></span>
-                    <p>
-                        {$textVals['date']}: {$quote->creation_date}<br>
-                        {$textVals['valid_until']}: {$quote->valid_until}<br>
-                    </p>
-                    <p>&nbsp;</p>
-                    <p><u>{$textVals['pelatis']}:</u><br>{$client->name}<br>{$client->address}<br>{$client->phone}<br>{$client->email}<br>
-                    </p>
-            </td><!--end of right top-->
-            </tr>
-    </table>
-    EOD;
-
-    $pdf->writeHTML($tbl, true, false, false, false, '');
-
-    $html = <<<EOD
-    <table cellspacing="0" cellpadding="1" style="border: 1px dotted gray; width: 98%;">
-        <thead>
-                    <tr>
-                        <th style="width: 37%;"> {$textVals['perigrafi']}</th>
-                        <th style="width: 21%;">{$textVals['monadas']}</th>
-                        <th style="width: 21%;">{$textVals['posotita']}</th>
-                        <th style="width: 21%;">{$textVals['timi']}</th>
-                    </tr>
-                </thead>
-                <tbody>
-    EOD;
-
-    foreach ($items as $item) {
-        $html .= <<<EOD
-                <tr>
-                        <td style="width: 37%;"> {$item->description}</td>
-                        <td style="width: 21%;">{$item->unit_price}</td>
-                        <td style="width: 21%;">{$item->quantity}</td>
-                        <td style="width: 21%;">{$item->price}</td>
-                    </tr>
-    EOD;
-    }
-
-    $syn_symp = ($quote->plus_inc_vat == 1) ? $textVals['syn'] : $textVals['symp'];
-
-    $html .= <<<EOD
-                <tr>
-                    <td> {$textVals['synolo_prin']}</td><td></td><td></td><td>{$quote->total_before_vat}</td>
-                </tr>
-                <tr>
-                    <td> {$textVals['fpa']} ({$quote->vat}%) ({$syn_symp})</td><td></td><td></td><td>{$quote->vat_price}</td>
-                </tr>
-                <tr>
-                    <td><strong> {$textVals['synolo_meta1']}:</strong></td><td></td><td></td><td><b>{$quote->total_after_vat}</b></td>
-                </tr>
-    EOD;
-
-    if ($quote->discount_val > 0) {
-        $html .= <<<EOD
-                <tr>
-                    <td> {$textVals['ekptosi']}: {$quote->discount_description}</td><td></td><td></td><td>{$quote->discount_val}</td>
-                </tr>
-                <tr>
-                    <td><b> {$textVals['synolo_meta2']}:</b></td><td></td><td></td><td>{$quote->total_after_discount}</td>
-                </tr>
-    EOD;
-    }
-
-    $html .= <<<EOD
-                </tbody>
-            </table>
-    EOD;
-
-    $pdf->writeHTML($html, true, false, false, false, '');
-
-
-    // Set content
-    $tbl = <<<EOD
-    <table cellspacing="0" cellpadding="1">
-        <tr>
-            <td><strong>{$textVals['ektimomenos']}:</strong> {$quote->delivery_time}</td>
-        </tr>
-        <tr>
-            <td></td>
-        </tr>
-        <tr>
-            <td style="text-align:center">{$textVals['efxarist']}</td>
-        </tr>
-    </table>
-    EOD;
-
-    $pdf->writeHTML($tbl, true, false, false, false, '');
-    // Close and output PDF document
-    $upload_dir = wp_upload_dir();
-    $pdf_file = $upload_dir['path'] . '/quote_' . $quote->id . '.pdf';
-    $pdf->Output($pdf_file, 'F');
-
-    // Return the URL of the generated PDF
-    return $upload_dir['url'] . '/quote_' . $quote->id . '.pdf';
-}
-//-----------End PDF handler function---------
-
-// Handle AJAX request to send quote to client
-add_action('wp_ajax_send_quote_to_client', 'send_quote_to_client');
-add_action('wp_ajax_nopriv_send_quote_to_client', 'send_quote_to_client');
-
-function send_quote_to_client()
-{
-    global $wpdb;
-    $quote_id = intval($_POST['quote_id']);
-    $quotes_table = $wpdb->prefix . 'bms_quotes';
-    $clients_table = $wpdb->prefix . 'bms_clients';
-
-    $quote = $wpdb->get_row($wpdb->prepare("SELECT * FROM $quotes_table WHERE id = %d", $quote_id));
-    if ($quote) {
-        $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $quote->client_id));
-        if ($client) {
-            $pdf_url = create_pdf_from_quote($quote);
-            $to = $client->email;
-            $subject = 'Quote #' . $quote->quote_no;
-            $message = 'Dear ' . esc_html($client->name) . ',<br><br>Please find attached the quote.<br><br>';
-            $message .= "<a href='" . esc_url($pdf_url) . "'>View Quote</a>";
-            $headers = ['Content-Type: text/html; charset=UTF-8'];
-            $sent = wp_mail($to, $subject, $message, $headers);
-    
-            if ($sent) {
-                echo wp_json_encode(['success' => true, 'email' => $to]);
-            } else {
-                echo wp_json_encode(['success' => false, 'error' => 'wp_mail failed.']);
-            }
-        } else {
-            echo wp_json_encode(['success' => false, 'error' => 'Client not found.']);
-        }
-    } else {
-        echo wp_json_encode(['success' => false, 'error' => 'Quote not found.']);
-    }
-    wp_die();
-    
-}
-//end email quote
 
 add_action('wp_ajax_delete_quote', 'delete_quote');
 add_action('wp_ajax_nopriv_delete_quote', 'delete_quote');
-
 function delete_quote()
 {
     global $wpdb;
@@ -395,157 +129,7 @@ add_action('wp_ajax_save_quote_as_new', 'save_quote_as_new');
 add_action('wp_ajax_nopriv_save_quote_as_new', 'save_quote_as_new');
 
 
-/** VIEW quote printable form */
-function fetch_quote_data()
-{
-    // Check if quote_id is set and is a valid number
-    if (!isset($_POST['quote_id']) || !is_numeric($_POST['quote_id'])) {
-        wp_send_json_error('Invalid quote ID');
-        return;
-    }
-
-    global $wpdb;
-    $quote_id = intval($_POST['quote_id']);
-    $quotes_table = $wpdb->prefix . 'bms_quotes';
-    $quote_items_table = $wpdb->prefix . 'bms_quote_items';
-    $clients_table = $wpdb->prefix . 'bms_clients';
-    $company_table = $wpdb->prefix . 'bms_company';
-
-    // Fetch quote data
-    $quote = $wpdb->get_row($wpdb->prepare("SELECT * FROM $quotes_table WHERE id = %d", $quote_id));
-    if (!$quote) {
-        wp_send_json_error('Quote not found');
-        return;
-    }
-
-    // Fetch client data
-    $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $quote->client_id));
-    if (!$client) {
-        wp_send_json_error('Client not found');
-        return;
-    }
-
-    // Fetch company data
-    $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
-    if (!$company) {
-        wp_send_json_error('Company details not found');
-        return;
-    }
-
-    // Fetch quote items
-    $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $quote_items_table WHERE quote_id = %d", $quote_id));
-
-    // Prepare data for response
-    $response = [
-        'quote_no' => $quote->quote_no,
-        'creation_date' => $quote->creation_date,
-        'valid_until' => $quote->valid_until,
-        'product_description' => $quote->product_description,
-        'total_before_vat' => $quote->total_before_vat,
-        'vat' => $quote->vat,
-        'plus_inc_vat' => $quote->plus_inc_vat,
-        'vat_price' => $quote->vat_price,
-        'total_after_vat' => $quote->total_after_vat,
-        'discount_val' => $quote->discount_val,
-        'discount_description' => $quote->discount_description,
-        'total_after_discount' => $quote->total_after_discount,
-        'delivery_time' => $quote->delivery_time,
-        'lang' => $quote->lang,
-        'client_name' => $client->name,
-        'client_address' => $client->address,
-        'client_phone' => $client->phone,
-        'client_email' => $client->email,
-        'company_name' => $company->company_name,
-        'company_address' => $company->address,
-        'company_phone' => $company->phone1,
-        'company_email' => $company->email,
-        'items' => $items
-    ];
-
-    wp_send_json_success($response);
-    wp_die();
-}
-
-add_action('wp_ajax_fetch_quote_data', 'fetch_quote_data');
-add_action('wp_ajax_nopriv_fetch_quote_data', 'fetch_quote_data');
-
-
-
 /** =============== INVOICES AJAX ===================================== */
-/** VIEW invoice printable form */
-function fetch_invoice_data()
-{
-    // Check if invoice_id is set and is a valid number
-    if (!isset($_POST['invoice_id']) || !is_numeric($_POST['invoice_id'])) {
-        wp_send_json_error('Invalid invoice ID');
-        return;
-    }
-
-    global $wpdb;
-    $invoice_id = intval($_POST['invoice_id']);
-    $invoices_table = $wpdb->prefix . 'bms_invoices';
-    $invoice_items_table = $wpdb->prefix . 'bms_invoice_items';
-    $clients_table = $wpdb->prefix . 'bms_clients';
-    $company_table = $wpdb->prefix . 'bms_company';
-
-    // Fetch invoice data
-    $invoice = $wpdb->get_row($wpdb->prepare("SELECT * FROM $invoices_table WHERE id = %d", $invoice_id));
-    if (!$invoice) {
-        wp_send_json_error('Invoice not found');
-        return;
-    }
-
-    // Fetch client data
-    $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $invoice->client_id));
-    if (!$client) {
-        wp_send_json_error('Client not found');
-        return;
-    }
-
-    // Fetch company data
-    $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
-    if (!$company) {
-        wp_send_json_error('Company details not found');
-        return;
-    }
-
-    // Fetch invoice items
-    $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $invoice_items_table WHERE invoice_id = %d", $invoice_id));
-
-    // Prepare data for response
-    $response = [
-        'invoice_no' => $invoice->invoice_no,
-        'creation_date' => $invoice->creation_date,
-        'include' => $invoice->include,
-        'vat' => $invoice->vat,
-        'plus_inc_vat' => $invoice->plus_inc_vat,
-        'vat_price' => $invoice->vat_price,
-        'total_before_vat' => $invoice->total_before_vat,
-        'total_after_vat' => $invoice->total_after_vat,
-        'product_description' => $invoice->product_description,
-        'discount_description' => $invoice->discount_description,
-        'discount_val' => $invoice->discount_val,
-        'total_after_discount' => $invoice->total_after_discount,
-        'lang' => $invoice->lang,
-        'client_name' => $client->name,
-        'client_address' => $client->address,
-        'client_phone' => $client->phone,
-        'client_email' => $client->email,
-        'company_name' => $company->company_name,
-        'company_address' => $company->address,
-        'company_phone' => $company->phone1,
-        'company_email' => $company->email,
-        'company_bank' => $company->bank_details,
-        'items' => $items
-    ];
-
-    wp_send_json_success($response);
-    wp_die();
-}
-
-add_action('wp_ajax_fetch_invoice_data', 'fetch_invoice_data');
-add_action('wp_ajax_nopriv_fetch_invoice_data', 'fetch_invoice_data');
-
 /** MODIFY Invoice */
 /** Ajax call to get invoice data */
 function load_invoice_data()
@@ -641,279 +225,6 @@ function save_invoice_as_new()
 add_action('wp_ajax_save_invoice_as_new', 'save_invoice_as_new');
 add_action('wp_ajax_nopriv_save_invoice_as_new', 'save_invoice_as_new');
 
-/** create PDF Invoice - Ajax call*/
-function generate_invoice_pdf()
-{
-    global $wpdb;
-    $invoice_id = intval($_POST['invoice_id']);
-    $invoices_table = $wpdb->prefix . 'bms_invoices';
-    $invoice = $wpdb->get_row($wpdb->prepare("SELECT * FROM $invoices_table WHERE id = %d", $invoice_id));
-    if ($invoice) {
-        // Generate the PDF URL from the invoice
-        $pdf_url = create_pdf_from_invoice($invoice);
-    
-        // Return success response with the PDF URL
-        echo wp_json_encode([
-            'success' => true,
-            'pdf_url' => esc_url($pdf_url)
-        ]);
-    } else {
-        // Return failure response
-        echo wp_json_encode([
-            'success' => false
-        ]);
-    }
-    // Ensure proper termination of script execution
-    wp_die();    
-}
-add_action('wp_ajax_generate_invoice_pdf', 'generate_invoice_pdf');
-add_action('wp_ajax_nopriv_generate_invoice_pdf', 'generate_invoice_pdf');
-
-function create_pdf_from_invoice($invoice)
-{
-    global $wpdb;
-    $clients_table = $wpdb->prefix . 'bms_clients';
-    $items_table = $wpdb->prefix . 'bms_invoice_items';
-    $company_table = $wpdb->prefix . 'bms_company';
-
-    // Get client details
-    $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $invoice->client_id));
-    // Get company details
-    $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
-    // Get invoice items
-    $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $items_table WHERE invoice_id = %d", $invoice->id));
-
-    $englishText = [
-        'date' => 'Date',
-        'pelatis' => 'Client',
-        'perigrafi' => 'Description',
-        'monadas' => 'Unit price',
-        'posotita' => 'Quantity',
-        'timi' => 'Price',
-        'synolo_prin' => '<b>Total</b> before VAT',
-        'delivery_time' => 'Delivery time',
-        'fpa' => 'VAT',
-        'syn' => 'plus VAT',
-        'symp' => 'VAT incl.',
-        'synolo_meta1' => 'Total after VAT',
-        'ekptosi' => 'Discount',
-        'synolo_meta2' => 'Total after discount',
-        'trapeza' => 'Bank details',
-        'efxarist' => 'Thanks for doing business with us'
-    ];
-
-    $greekText = [
-        'date' => 'Ημερομηνία',
-        'pelatis' => 'Πελάτης',
-        'perigrafi' => 'Περιγραφή',
-        'monadas' => 'Τιμή μονάδας',
-        'posotita' => 'Ποσότητα',
-        'timi' => 'Τιμή',
-        'synolo_prin' => '<b>Σύνολο</b> πριν το ΦΠΑ',
-        'fpa' => 'Φ.Π.Α.',
-        'syn' => 'συν ΦΠΑ',
-        'symp' => 'ΦΠΑ συμπεριλ.',
-        'synolo_meta1' => 'Σύνολο (μετά το ΦΠΑ)',
-        'ekptosi' => 'Εκπτωση',
-        'synolo_meta2' => 'Σύνολο (μετά την εκπτωση)',
-        'trapeza' => 'Τραπεζ. λογαριασμός',
-        'efxarist' => 'Ευχαριστούμε για τη συνεργασία'
-    ];
-
-    $textVals = $invoice->lang == 'en' ? $englishText : $greekText;
-
-
-    // Load TCPDF only when generating a PDF
-    load_tcpdf();
-
-    // Create new PDF document
-    $pdf = new TCPDF();
-
-    // Set document information
-    $pdf->SetCreator(PDF_CREATOR);
-    $pdf->SetAuthor($company->company_name);
-    $pdf->SetTitle('Invoice #' . $invoice->invoice_no);
-    $pdf->SetSubject('Invoice');
-
-    // Set default monospaced font
-    $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
-
-    // Set margins
-    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
-    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
-    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
-
-    // Set auto page breaks
-    $pdf->SetAutoPageBreak(true, PDF_MARGIN_BOTTOM);
-
-    // Set image scale factor
-    $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
-
-    // Set font
-    $pdf->SetFont('dejavusans', '', 10);
-
-    // Add a page
-    $pdf->AddPage();
-
-    // Set content
-    $tbl = <<<EOD
-    <table cellspacing="0" cellpadding="1">
-        <tr>
-            <td>
-                <p>{$company->company_name}</p>
-                <p>{$company->address}</p>
-                <p>{$company->phone1}<br>{$company->email}<br></p>
-            </td><!--end of left top-->
-            <td>
-                    <span style='text-align:right;'># <b>{$invoice->invoice_no}</b></span>
-                    <p>
-                        {$textVals['date']}: {$invoice->creation_date}<br>
-                    </p>
-                    <p>&nbsp;</p>
-                    <p><u>{$textVals['pelatis']}:</u><br>{$client->name}<br>{$client->address}<br>{$client->phone}<br>{$client->email}<br>
-                    </p>
-            </td><!--end of right top-->
-            </tr>
-    </table>
-    EOD;
-
-    $pdf->writeHTML($tbl, true, false, false, false, '');
-
-    $html = <<<EOD
-    <table cellspacing="0" cellpadding="1" style="border: 1px dotted gray; width: 98%;">
-        <thead>
-                    <tr>
-                        <th style="width: 37%;"> {$textVals['perigrafi']}</th>
-                        <th style="width: 21%;">{$textVals['monadas']}</th>
-                        <th style="width: 21%;">{$textVals['posotita']}</th>
-                        <th style="width: 21%;">{$textVals['timi']}</th>
-                    </tr>
-                </thead>
-                <tbody>
-    EOD;
-
-    foreach ($items as $item) {
-        $html .= <<<EOD
-                <tr>
-                        <td style="width: 37%;"> {$item->description}</td>
-                        <td style="width: 21%;">{$item->unit_price}</td>
-                        <td style="width: 21%;">{$item->quantity}</td>
-                        <td style="width: 21%;">{$item->price}</td>
-                    </tr>
-    EOD;
-    }
-
-    $syn_symp = ($invoice->plus_inc_vat == 1) ? $textVals['syn'] : $textVals['symp'];
-
-    $html .= <<<EOD
-                <tr>
-                    <td> {$textVals['synolo_prin']}</td><td></td><td></td><td>{$invoice->total_before_vat}</td>
-                </tr>
-                <tr>
-                    <td> {$textVals['fpa']} ({$invoice->vat}%) ({$syn_symp})</td><td></td><td></td><td>{$invoice->vat_price}</td>
-                </tr>
-                <tr>
-                    <td><strong> {$textVals['synolo_meta1']}:</strong></td><td></td><td></td><td><b>{$invoice->total_after_vat}</b></td>
-                </tr>
-    EOD;
-
-    if ($invoice->discount_val > 0) {
-        $html .= <<<EOD
-                <tr>
-                    <td> {$textVals['ekptosi']}: {$invoice->discount_description}</td><td></td><td></td><td>{$invoice->discount_val}</td>
-                </tr>
-                <tr>
-                    <td><b> {$textVals['synolo_meta2']}:</b></td><td></td><td></td><td>{$invoice->total_after_discount}</td>
-                </tr>
-    EOD;
-    }
-
-    $html .= <<<EOD
-                </tbody>
-            </table>
-    EOD;
-
-    $pdf->writeHTML($html, true, false, false, false, '');
-
-
-    // Set content
-    $tbl = <<<EOD
-    <table cellspacing="0" cellpadding="1">
-        <tr>
-            <td><strong>{$textVals['trapeza']}:</strong><br>{$company->bank_details}</td>
-        </tr>
-        <tr>
-            <td></td>
-        </tr>
-        <tr>
-            <td style="text-align:center">{$textVals['efxarist']}</td>
-        </tr>
-    </table>
-    EOD;
-
-    $pdf->writeHTML($tbl, true, false, false, false, '');
-    // Close and output PDF document
-    $upload_dir = wp_upload_dir();
-    $pdf_file = $upload_dir['path'] . '/invoice_' . $invoice->id . '.pdf';
-    $pdf->Output($pdf_file, 'F');
-
-    // Return the URL of the generated PDF
-    return $upload_dir['url'] . '/invoice_' . $invoice->id . '.pdf';
-}
-//-----------End PDF handler function for invoices---------
-
-
-// Handle AJAX request to send invoice to client
-add_action('wp_ajax_send_invoice_to_client', 'send_invoice_to_client');
-add_action('wp_ajax_nopriv_send_invoice_to_client', 'send_invoice_to_client');
-
-function send_invoice_to_client()
-{
-    global $wpdb;
-    $invoice_id = intval($_POST['invoice_id']);
-    $invoices_table = $wpdb->prefix . 'bms_invoices';
-    $clients_table = $wpdb->prefix . 'bms_clients';
-
-    $invoice = $wpdb->get_row($wpdb->prepare("SELECT * FROM $invoices_table WHERE id = %d", $invoice_id));
-    if ($invoice) {
-        // Retrieve the client associated with the invoice
-        $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $invoice->client_id));
-    
-        if ($client) {
-            // Generate PDF URL for the invoice
-            $pdf_url = create_pdf_from_invoice($invoice);
-    
-            // Set up the email parameters
-            $to = $client->email;
-            $subject = 'Invoice #' . $invoice->invoice_no;
-            $message = 'Dear ' . $client->name . ',<br><br>Please find attached the invoice.<br><br>';
-            $message .= "<a href='" . esc_url($pdf_url) . "'>View Invoice</a>";
-            $headers = ['Content-Type: text/html; charset=UTF-8'];
-    
-            // Send the email
-            $sent = wp_mail($to, $subject, $message, $headers);
-    
-            // Return the response
-            if ($sent) {
-                echo wp_json_encode(['success' => true, 'email' => $to]);
-            } else {
-                echo wp_json_encode(['success' => false, 'error' => 'wp_mail failed.']);
-            }
-        } else {
-            echo wp_json_encode(['success' => false, 'error' => 'Client not found.']);
-        }
-    } else {
-        echo wp_json_encode(['success' => false, 'error' => 'Invoice not found.']);
-    }
-    
-    // Ensure proper termination of script execution
-    wp_die();    
-}
-//end email invoice
-
-add_action('wp_ajax_cancel_invoice', 'cancel_invoice');
-add_action('wp_ajax_nopriv_cancel_invoice', 'cancel_invoice');
-
 function cancel_invoice()
 {
     global $wpdb;
@@ -946,6 +257,8 @@ function cancel_invoice()
     // Ensure proper termination of script execution
     wp_die();    
 }
+add_action('wp_ajax_cancel_invoice', 'cancel_invoice');
+add_action('wp_ajax_nopriv_cancel_invoice', 'cancel_invoice');
 //end cancel invoice
 
 /** END INVOICE AJAXES ========================= */
@@ -990,3 +303,103 @@ function get_balance_details()
 }
 
 /** END BALANCES AJAXES ========================= */
+
+/** =============== PRINT CODE AJAX FOR INVOICES/PROJECTS/QUOTES ===================================== */
+/** VIEW project inv printable form */
+function fetch_data_for_print() {
+    if (!isset($_POST['this_id']) || !is_numeric($_POST['this_id']) || !isset($_POST['source'])) {
+        wp_send_json_error('Invalid request parameters');
+        return;
+    }
+
+    global $wpdb;
+    $id = intval($_POST['this_id']);
+    $type = sanitize_text_field($_POST['source']); // 'invoice', 'project', or 'quote'
+
+    // Define table names based on the type
+    $main_table = '';
+    $items_table = '';
+    $client_id_field = 'client_id';
+    $item_id_field = '';
+
+    switch ($type) {
+        case 'invoice':
+            $main_table = $wpdb->prefix . 'bms_invoices';
+            $items_table = $wpdb->prefix . 'bms_invoice_items';
+            $item_id_field = 'invoice_id';
+            break;
+        case 'project':
+            $main_table = $wpdb->prefix . 'bms_projects';
+            $items_table = $wpdb->prefix . 'bms_project_items';
+            $item_id_field = 'project_id';
+            break;
+        case 'quote':
+            $main_table = $wpdb->prefix . 'bms_quotes';
+            $items_table = $wpdb->prefix . 'bms_quote_items';
+            $item_id_field = 'quote_id';
+            break;
+        default:
+            wp_send_json_error('Invalid source type');
+            return;
+    }
+
+    $clients_table = $wpdb->prefix . 'bms_clients';
+    $company_table = $wpdb->prefix . 'bms_company';
+
+    // Fetch main data (invoice, project, or quote)
+    $main_data = $wpdb->get_row($wpdb->prepare("SELECT * FROM $main_table WHERE id = %d", $id));
+    if (!$main_data) {
+        wp_send_json_error(ucfirst($type) . ' not found');
+        return;
+    }
+
+    // Fetch client data
+    $client = $wpdb->get_row($wpdb->prepare("SELECT * FROM $clients_table WHERE id = %d", $main_data->$client_id_field));
+    if (!$client) {
+        wp_send_json_error('Client not found');
+        return;
+    }
+
+    // Fetch company data
+    $company = $wpdb->get_row("SELECT * FROM $company_table LIMIT 1");
+    if (!$company) {
+        wp_send_json_error('Company details not found');
+        return;
+    }
+
+    // Fetch items data
+    $items = $wpdb->get_results($wpdb->prepare("SELECT * FROM $items_table WHERE $item_id_field = %d", $id));
+
+    // Prepare data for response
+    $response = [
+        'no' => ($type === 'invoice') ? $main_data->invoice_no : (($type === 'quote') ? $main_data->quote_no : $main_data->id),
+        'creation_date' => $main_data->creation_date,
+        'include' => ($type === 'invoice') ? $main_data->include : (($type === 'project') ? $main_data->pr_inv_incl : 'our_address,client_address,bank_details,thanks_msg'),
+        'vat' => $main_data->vat,
+        'plus_inc_vat' => $main_data->plus_inc_vat,
+        'vat_price' => $main_data->vat_price,
+        'total_before_vat' => $main_data->total_before_vat,
+        'total_after_vat' => $main_data->total_after_vat,
+        'product_description' => ($type === 'invoice') ? $main_data->product_description : (($type === 'quote') ? $main_data->product_description : $main_data->description),
+        'discount_description' => $main_data->discount_description,
+        'discount_val' => $main_data->discount_val,
+        'total_after_discount' => $main_data->total_after_discount,
+        'client_name' => $client->name,
+        'client_address' => $client->address,
+        'client_phone' => $client->phone,
+        'client_email' => $client->email,
+        'company_name' => $company->company_name,
+        'company_address' => $company->address,
+        'company_phone' => $company->phone1,
+        'company_email' => $company->email,
+        'company_bank' => $company->bank_details,
+        'company_thanks' => $company->thanks_msg,
+        'items' => $items
+    ];
+
+    wp_send_json_success($response);
+    wp_die();
+}
+add_action('wp_ajax_fetch_data_for_print', 'fetch_data_for_print');
+
+/** END PRINT AJAXES ========================= */

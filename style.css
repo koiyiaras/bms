@@ -1,5 +1,14 @@
+/* to fix the issut with inputs getting smaller */
+input.form-control {
+    padding: .375rem .75rem!important;
+}
+
 .bms-container {
     margin-bottom: 3rem;
+}
+
+.balances-container .dashicons, .project-inv-icons .dashicons {
+    color: #666665;
 }
 
 .cl-row, .quote-row, .invoice-row {
@@ -106,3 +115,146 @@
 .project-head-bg {
     background: #ffedba; 
 }
+
+/* The custom switch - the box around the slider */
+.custom-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px; /* Adjusted width */
+    height: 24px; /* Adjusted height */
+}
+
+/* Hide default HTML checkbox */
+.custom-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 24px; /* Adjusted border radius */
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px; /* Adjusted height */
+    width: 18px; /* Adjusted width */
+    left: 3px; /* Adjusted position */
+    bottom: 3px; /* Adjusted position */
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%; /* Ensure the circle remains round */
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px); /* Adjusted translation */
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 24px; /* Adjusted border radius */
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/*new buttons */
+.bg-purple {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+  }
+  
+  .bg-purple .card-body {
+    color: #fff;
+  }
+  
+  .bg-purple .card-title,
+  .bg-purple .card-text {
+    color: #fff;
+  }
+  .btn-purple {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+  }
+  
+  .btn-purple:hover {
+    color: #fff;
+    background-color: #5a33a8;
+    border-color: #5a33a8;
+  }
+  
+  .btn-purple:focus, .btn-purple.focus {
+    color: #fff;
+    background-color: #5a33a8;
+    border-color: #5a33a8;
+    box-shadow: 0 0 0 0.2rem rgba(127, 73, 185, 0.5);
+  }
+  
+  .btn-purple:disabled, .btn-purple.disabled {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+  }
+  .bg-orange {
+    background-color: #fd7e14 !important;
+    color: #fff !important;
+  }
+  
+  .bg-orange .card-body {
+    color: #fff;
+  }
+  
+  .bg-orange .card-title,
+  .bg-orange .card-text {
+    color: #fff;
+  }
+  
+  .btn-orange {
+    color: #fff;
+    background-color: #fd7e14;
+    border-color: #fd7e14;
+  }
+  
+  .btn-orange:hover {
+    color: #fff;
+    background-color: #e36907;
+    border-color: #e36907;
+  }
+  
+  .btn-orange:focus, .btn-orange.focus {
+    color: #fff;
+    background-color: #e36907;
+    border-color: #e36907;
+    box-shadow: 0 0 0 0.2rem rgba(243, 129, 29, 0.5);
+  }
+  
+  .btn-orange:disabled, .btn-orange.disabled {
+    color: #fff;
+    background-color: #fd7e14;
+    border-color: #fd7e14;
+  }
+  
